@@ -1,0 +1,22 @@
+disabled_rules: 
+- trailing_whitespace
+excluded: 
+- vendor
+line_length: 160
+nesting:
+    type_level:
+        warning: 2
+type_name:
+  allowed_symbols: ["_"] # these are allowed in type names
+identifier_name:
+  min_length: 2
+  excluded: # excluded via string array
+    - i
+    - URL
+    - vc
+opening_brace:
+  allow_multiline_func: true
+
+large_tuple:
+    warning: 4
+    error: 3
