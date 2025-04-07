@@ -42,6 +42,8 @@ public enum LoadMoreState<Model> {
     case ready
 }
 
+extension LoadMoreState: Equatable {}
+
 @MainActor
 @Observable
 open class ListModel<Model: RandomAccessCollection, Query: Sendable>

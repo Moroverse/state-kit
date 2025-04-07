@@ -13,7 +13,7 @@ struct DetailModelTests {
 
     // MARK: - SUT Creation
 
-    func makeSUT() async -> (
+    private func makeSUT() async -> (
         sut: DetailModel<TestModel, TestQuery>,
         loader: AsyncSpy<TestModel>,
         queryProvider: QueryProviderStub
@@ -127,18 +127,34 @@ struct DetailModelTests {
 
 // MARK: - Test Helpers
 
-extension AsyncSpy {
+private extension AsyncSpy {
     @Sendable
     func load(_ query: some Sendable) async throws -> Result {
         try await perform(query)
     }
 }
 
-struct TestModel: Equatable, Sendable {
+private struct TestModel: Equatable, Sendable {
     let id: String
     let name: String
 }
 
-struct TestQuery: Equatable, Sendable {
+private struct TestQuery: Equatable, Sendable {
     let id: String
+}
+
+@MainActor
+private final class QueryProviderStub {
+    var queries: [TestQuery] = []
+    var provideCallCount = 0
+
+    func provide() -> TestQuery {
+        provideCallCount += 1
+        guard !queries.isEmpty else {
+            Issue.record("Query provider not properly stubbed")
+            return TestQuery(id: "")
+        }
+
+        return queries.removeFirst()
+    }
 }
