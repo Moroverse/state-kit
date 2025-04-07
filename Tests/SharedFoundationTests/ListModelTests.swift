@@ -3,11 +3,11 @@
 // Created by Daniel Moro on 2025-04-06.
 
 import Clocks
+import ConcurrencyExtras
 import Foundation
 @testable import SharedFoundation
 import SharedTesting
 import Testing
-import ConcurrencyExtras
 
 @MainActor
 @Suite(.teardownTracking())
@@ -195,40 +195,37 @@ struct ListModelTests {
     func onSearch_performsLoadWithDebounce() async throws {
         let (sut, loader, queryBuilder, clock) = await makeSUTSearch()
         let expectedItems = [TestListItem(id: "1", name: "Search Result")]
-        queryBuilder.queries = [TestQuery(term: "te"), TestQuery(term: "tes")]
+        queryBuilder.queries = [TestQuery(term: "te"), TestQuery(term: "tes"), TestQuery(term: "test")]
 
-        await withMainSerialExecutor {
-            let task = Task { await sut.onSearch("te") }
-            await Task.megaYield()
-            await Task.megaYield()
-            await clock.advance(by: .seconds(0.2))
-            let task2 = Task { await sut.onSearch("tes") }
-            await Task.megaYield()
-            await Task.megaYield()
-            await clock.advance(by: .seconds(0.3))
-
-            loader.complete(with: expectedItems)
-
-            await task.value
-            await task2.value
-
-            #expect(sut.state == .ready(expectedItems))
-            #expect(queryBuilder.buildCallCount == 2)
-            #expect(loader.performCallCount == 1)
-        }
-
-
-//        try await loader.async(yieldCount: 2) {
-//            await sut.onSearch("te")
-//        } expectationBeforeCompletion: {
-//            await clock.advance(by: .seconds(0.2))
-//        }
-//        completeWith: {
-//            .success(expectedItems)
-//        } expectationAfterCompletion: { _ in
-//            #expect(sut.state == .ready(expectedItems))
-//            #expect(queryBuilder.buildCallCount == 1)
-//        }
+        //Query is sent 3 times but load is performed only once
+        try await loader.async(
+            yieldCount: 2,
+            processes: [
+                .init(process: {
+                    await sut.onSearch("te")
+                }, processAdvance: {
+                    await clock.advance(by: .seconds(0.2))
+                }),
+                .init(process: {
+                    await sut.onSearch("tes")
+                }, processAdvance: {
+                    await clock.advance(by: .seconds(0.2))
+                }),
+                .init(process: {
+                    await sut.onSearch("test")
+                }, processAdvance: {
+                    await clock.advance(by: .seconds(0.6))
+                })
+            ],
+            completeWith: {
+                .success(expectedItems)
+            },
+            expectationAfterCompletion: { _ in
+                #expect(sut.state == .ready(expectedItems))
+                #expect(queryBuilder.buildCallCount == 3)
+                #expect(loader.performCallCount == 1)
+            }
+        )
     }
 
     @Test

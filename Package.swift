@@ -20,12 +20,9 @@ let package = Package(
         .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.3"),
         .package(url: "https://github.com/pointfreeco/swift-clocks.git", from: "1.0.6"),
-//        .package(url: "https://github.com/Moroverse/shared-testing.git", from: "0.1.2")
-        .package(path: "../shared-testing")
+        .package(url: "https://github.com/Moroverse/shared-testing.git", from: "0.2.0")
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
         .target(
             name: "SharedFoundation",
             plugins: [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")]

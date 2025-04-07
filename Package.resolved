@@ -1,6 +1,15 @@
 {
-  "originHash" : "69080a3b75866a9c5fcfa1c10fe878cef026b17ee9e1bfbd55618f5aa6d55a78",
+  "originHash" : "90ed224a72c9b7b146794c720632d67f3175abda567d78a9cfacf8f59c08b13f",
   "pins" : [
+    {
+      "identity" : "shared-testing",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Moroverse/shared-testing.git",
+      "state" : {
+        "revision" : "e157e1998bafc9960011fd20e3005d45b692f6a4",
+        "version" : "0.2.0"
+      }
+    },
     {
       "identity" : "swift-clocks",
       "kind" : "remoteSourceControl",
