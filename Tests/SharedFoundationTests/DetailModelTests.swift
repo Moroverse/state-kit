@@ -8,7 +8,7 @@ import Testing
 import SharedTesting
 
 @MainActor
-@Suite(.teardownTracking())
+@Suite
 struct DetailModelTests {
 
     // MARK: - SUT Creation
@@ -32,14 +32,14 @@ struct DetailModelTests {
 
     // MARK: - Test Cases
 
-    @Test
+    @Test(.teardownTracking())
     func init_setsEmptyStateAndNilError() async throws {
         let (sut, _, _) = await makeSUT()
         #expect(sut.state == .empty)
         #expect(sut.error == nil)
     }
 
-    @Test
+    @Test(.teardownTracking())
     func load_setsReadyStateOnSuccessfulResponse() async throws {
         let expectedModel = TestModel(id: "1", name: "Test")
         let (sut, loader, queryProvider) = await makeSUT()
@@ -56,7 +56,7 @@ struct DetailModelTests {
             }
     }
 
-    @Test
+    @Test(.teardownTracking())
     func load_setsEmptyStateAndErrorOnErrorResponse() async throws {
         let expectedError = NSError(domain: "TestError", code: 0, userInfo: nil)
         let (sut, loader, queryProvider) = await makeSUT()
@@ -72,7 +72,7 @@ struct DetailModelTests {
         }
     }
 
-    @Test
+    @Test(.teardownTracking())
     func load_usesCacheOnRepeatedCallWithSameQuery() async throws {
         let model1 = TestModel(id: "1", name: "Test 1")
         let model2 = TestModel(id: "2", name: "Test 2")
@@ -108,7 +108,7 @@ struct DetailModelTests {
         }
     }
 
-    @Test
+    @Test(.teardownTracking())
     func cancel_maintainsEmptyStateOnCancelledLoad() async throws {
         let anyModel = TestModel(id: "1", name: "Test")
         let (sut, loader, queryProvider) = await makeSUT()

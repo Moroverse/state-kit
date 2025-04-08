@@ -10,7 +10,7 @@ import SharedTesting
 import Testing
 
 @MainActor
-@Suite(.teardownTracking())
+@Suite
 struct ListModelTests {
     // MARK: - SUT Creation
 
@@ -88,7 +88,7 @@ struct ListModelTests {
 
     // MARK: - Test Cases
 
-    @Test
+    @Test(.teardownTracking())
     func init_setsEmptyStateAndNilErrorMessage() async throws {
         let (sut, _, _) = await makeSUT()
 
@@ -96,7 +96,7 @@ struct ListModelTests {
         #expect(sut.errorMessage == nil)
     }
 
-    @Test
+    @Test(.teardownTracking())
     func load_setsReadyStateOnSuccessfulResponse() async throws {
         let expectedItems = [TestListItem(id: "1", name: "Item 1")]
         let (sut, loader, queryBuilder) = await makeSUT()
@@ -113,7 +113,7 @@ struct ListModelTests {
             }
     }
 
-    @Test
+    @Test(.teardownTracking())
     func load_setsEmptyStateForEmptyResponse() async throws {
         let (sut, loader, queryBuilder) = await makeSUT()
         queryBuilder.queries = [TestQuery(term: "test")]
@@ -129,7 +129,7 @@ struct ListModelTests {
             }
     }
 
-    @Test
+    @Test(.teardownTracking())
     func load_setsErrorMessageOnErrorResponse() async throws {
         let expectedError = NSError(domain: "TestError", code: 0, userInfo: nil)
         let (sut, loader, queryBuilder) = await makeSUT()
@@ -145,7 +145,7 @@ struct ListModelTests {
             }
     }
 
-    @Test
+    @Test(.teardownTracking())
     func load_usesCacheOnRepeatedCallWithSameQuery() async throws {
         let items1 = [TestListItem(id: "1", name: "Item 1")]
         let items2 = [TestListItem(id: "2", name: "Item 2")]
@@ -182,22 +182,32 @@ struct ListModelTests {
         }
     }
 
-//    @Test
-//    func cancelSearch_cancelsInProgressLoadOperation() async throws {
-//        let (sut, loader, queryBuilder) = await makeSUT()
-//        let expectedItems = [TestListItem(id: "1", name: "Search Result")]
-//        queryBuilder.queries = [TestQuery(term: "test")]
-//
-//
-//    }
+    @Test(.teardownTracking())
+    func cancelSearch_cancelsInProgressLoadOperation() async throws {
+        let (sut, loader, queryBuilder) = await makeSUT()
+        let expectedItems = [TestListItem(id: "1", name: "Search Result")]
+        queryBuilder.queries = [TestQuery(term: "test")]
 
-    @Test
+        try await loader
+            .async(yieldCount: 2) {
+                await sut.load()
+            } processAdvance: {
+                await sut.cancelSearch()
+            } completeWith: {
+                .success(expectedItems)
+            } expectationAfterCompletion: { _ in
+                #expect(sut.state == .empty)
+                #expect(sut.errorMessage == nil)
+            }
+    }
+
+    @Test(.teardownTracking())
     func onSearch_performsLoadWithDebounce() async throws {
         let (sut, loader, queryBuilder, clock) = await makeSUTSearch()
         let expectedItems = [TestListItem(id: "1", name: "Search Result")]
         queryBuilder.queries = [TestQuery(term: "te"), TestQuery(term: "tes"), TestQuery(term: "test")]
 
-        //Query is sent 3 times but load is performed only once
+        // Query is sent 3 times but load is performed only once
         try await loader.async(
             yieldCount: 2,
             processes: [
@@ -228,7 +238,7 @@ struct ListModelTests {
         )
     }
 
-    @Test
+    @Test(.teardownTracking())
     func element_returnsItemAtSpecifiedIndex() async throws {
         let items = [
             TestListItem(id: "1", name: "Item 1"),
@@ -248,7 +258,7 @@ struct ListModelTests {
         }
     }
 
-    @Test
+    @Test(.teardownTracking())
     func loadMore_callsLoadMoreOnPaginatedModel() async throws {
         let initialItems = [TestListItem(id: "1", name: "Item 1")]
         let nextPageItems = [
@@ -275,7 +285,7 @@ struct ListModelTests {
         #expect(sut.state == .ready(Paginated(items: nextPageItems)))
     }
 
-    @Test
+    @Test(.teardownTracking())
     func selection_triggersSelectionCallback() async throws {
         let items = [
             TestListItem(id: "1", name: "Item 1"),

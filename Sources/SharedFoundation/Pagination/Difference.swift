@@ -23,3 +23,5 @@ public struct Difference<Element: Identifiable> {
         self.updates = updates
     }
 }
+
+extension Difference: Sendable where Element: Sendable, Element.ID: Sendable {}

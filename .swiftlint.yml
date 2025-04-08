@@ -14,8 +14,8 @@ identifier_name:
     - i
     - URL
     - vc
-opening_brace:
-  allow_multiline_func: true
+# opening_brace:
+#   ignore_multiline_function_signatures: true
 
 large_tuple:
     warning: 4
