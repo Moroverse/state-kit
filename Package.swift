@@ -20,7 +20,7 @@ let package = Package(
         .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
         .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.3"),
         .package(url: "https://github.com/pointfreeco/swift-clocks.git", from: "1.0.6"),
-        .package(url: "https://github.com/Moroverse/shared-testing.git", from: "0.2.0")
+        .package(url: "https://github.com/Moroverse/shared-testing.git", from: "0.2.1")
     ],
     targets: [
         .target(

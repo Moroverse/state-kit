@@ -1,13 +1,13 @@
 {
-  "originHash" : "90ed224a72c9b7b146794c720632d67f3175abda567d78a9cfacf8f59c08b13f",
+  "originHash" : "ba4117e47a2fe777e9e8cf7a8ec81e6b3199a384bd644cafaa5831a004990292",
   "pins" : [
     {
       "identity" : "shared-testing",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Moroverse/shared-testing.git",
       "state" : {
-        "revision" : "e157e1998bafc9960011fd20e3005d45b692f6a4",
-        "version" : "0.2.0"
+        "revision" : "cc3cbf886ccd96e9f89c3e45a994150c4bff7625",
+        "version" : "0.2.1"
       }
     },
     {
