@@ -1,16 +1,15 @@
 // DetailModelTests.swift
 // Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2024-08-07 18:45 GMT.
+// Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 import Foundation
+import SharedTesting
 import Testing
 @testable import SharedFoundation
-import SharedTesting
 
 @MainActor
 @Suite
 struct DetailModelTests {
-
     // MARK: - SUT Creation
 
     private func makeSUT() async -> (

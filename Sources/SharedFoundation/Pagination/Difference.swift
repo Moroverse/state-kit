@@ -1,6 +1,6 @@
 // Difference.swift
 // Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2025-03-22 19:15 GMT.
+// Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 /// Represents changes to be applied to the cached collection.
 public struct Difference<Element: Identifiable> {

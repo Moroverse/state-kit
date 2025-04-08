@@ -1,13 +1,13 @@
 // ListModelTests.swift
 // Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2025-04-06.
+// Created by Daniel Moro on 2025-04-07 08:57 GMT.
 
 import Clocks
 import ConcurrencyExtras
 import Foundation
-@testable import SharedFoundation
 import SharedTesting
 import Testing
+@testable import SharedFoundation
 
 @MainActor
 @Suite
