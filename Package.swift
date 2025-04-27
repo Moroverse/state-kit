@@ -4,7 +4,7 @@
 import PackageDescription
 
 let package = Package(
-    name: "shared-foundation",
+    name: "state-kit",
     platforms: [
         .iOS(.v17),
         .macOS(.v14)
@@ -12,27 +12,26 @@ let package = Package(
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
-            name: "SharedFoundation",
-            targets: ["SharedFoundation"]
+            name: "StateKit",
+            targets: ["StateKit"]
         )
     ],
     dependencies: [
         .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
-        .package(url: "https://github.com/apple/swift-docc-plugin", from: "1.4.3"),
         .package(url: "https://github.com/pointfreeco/swift-clocks.git", from: "1.0.6"),
         .package(url: "https://github.com/Moroverse/shared-testing.git", from: "0.2.1")
     ],
     targets: [
         .target(
-            name: "SharedFoundation",
+            name: "StateKit",
             plugins: [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")]
         ),
         .testTarget(
-            name: "SharedFoundationTests",
+            name: "StateKitTests",
             dependencies: [
                 .product(name: "Clocks", package: "swift-clocks"),
                 .product(name: "SharedTesting", package: "shared-testing"),
-                "SharedFoundation"
+                "StateKit"
             ],
             plugins: [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")]
         )
