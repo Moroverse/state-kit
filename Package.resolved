@@ -1,15 +1,6 @@
 {
-  "originHash" : "a7ab388b736b3cd0306eb74f63fcd361cbfbffafff173cebbf4859098b68207b",
+  "originHash" : "3ea92a3f4f61071266e56280f3f4687720f909b35afe0bd31c9748f7786b9968",
   "pins" : [
-    {
-      "identity" : "shared-testing",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/Moroverse/shared-testing.git",
-      "state" : {
-        "revision" : "cc3cbf886ccd96e9f89c3e45a994150c4bff7625",
-        "version" : "0.2.1"
-      }
-    },
     {
       "identity" : "swift-clocks",
       "kind" : "remoteSourceControl",
@@ -35,6 +26,15 @@
       "state" : {
         "revision" : "82645ec760917961cfa08c9c0c7104a57a0fa4b1",
         "version" : "1.3.3"
+      }
+    },
+    {
+      "identity" : "test-kit",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Moroverse/test-kit.git",
+      "state" : {
+        "revision" : "48d6f38cf78476f19b11668d790bf4b0833a6632",
+        "version" : "0.3.2"
       }
     },
     {

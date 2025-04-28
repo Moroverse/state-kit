@@ -1,6 +1,6 @@
 // LastIDPaginationCache.swift
 // Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2025-02-15 15:24 GMT.
+// Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 actor LastIDPaginationCache<Element, Key: Hashable & Sendable> where Element: Identifiable & Sendable, Element.ID: Sendable {
     private var cache: [Element] = []

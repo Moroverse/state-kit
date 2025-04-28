@@ -1,6 +1,6 @@
 // LastIDPaginator.swift
 // Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2025-02-15 15:23 GMT.
+// Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 /**
  A generic actor that handles pagination using a 'last ID' (cursor-based) strategy for any collection of identifiable elements.

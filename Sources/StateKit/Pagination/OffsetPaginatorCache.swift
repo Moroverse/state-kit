@@ -1,6 +1,6 @@
 // OffsetPaginatorCache.swift
 // Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2025-03-22 19:05 GMT.
+// Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 actor OffsetPaginationCache<Element, Key: Hashable & Sendable> where Element: Identifiable & Sendable, Element.ID: Sendable {
     private var cache: [Element] = []

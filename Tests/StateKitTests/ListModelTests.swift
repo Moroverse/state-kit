@@ -5,8 +5,8 @@
 import Clocks
 import ConcurrencyExtras
 import Foundation
-import SharedTesting
 import Testing
+import TestKit
 @testable import StateKit
 
 @MainActor

@@ -1,6 +1,6 @@
 // OffsetPaginator.swift
 // Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2025-03-22 18:34 GMT.
+// Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 public actor OffsetPaginator<Element, Query: Hashable & Sendable> where Element: Identifiable & Sendable, Element.ID: Sendable {
     /// A function type that loads elements from a remote source using offset-based pagination.

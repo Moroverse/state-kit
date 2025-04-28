@@ -3,8 +3,8 @@
 // Created by Daniel Moro on 2025-04-08 12:52 GMT.
 
 import Foundation
-import SharedTesting
 import Testing
+import TestKit
 @testable import StateKit
 
 @MainActor

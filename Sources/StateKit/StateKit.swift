@@ -1,6 +1,6 @@
-// SharedFoundation.swift
+// StateKit.swift
 // Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2024-07-20 03:24 GMT.
+// Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 /// An enumeration representing the different states of a data-loading process.
 ///

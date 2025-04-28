@@ -1,6 +1,6 @@
 // MockService.swift
 // Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2025-03-26 19:18 GMT.
+// Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 public actor MockService<T> where T: Sendable {
     let result: Result<T, Error>
