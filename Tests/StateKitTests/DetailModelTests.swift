@@ -5,7 +5,7 @@
 import Foundation
 import SharedTesting
 import Testing
-@testable import SharedFoundation
+@testable import StateKit
 
 @MainActor
 @Suite

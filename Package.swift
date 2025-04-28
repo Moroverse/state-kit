@@ -17,14 +17,16 @@ let package = Package(
         )
     ],
     dependencies: [
-        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
+//        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
         .package(url: "https://github.com/pointfreeco/swift-clocks.git", from: "1.0.6"),
         .package(url: "https://github.com/Moroverse/shared-testing.git", from: "0.2.1")
     ],
     targets: [
         .target(
             name: "StateKit",
-            plugins: [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")]
+            plugins: [
+//                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
+            ]
         ),
         .testTarget(
             name: "StateKitTests",
@@ -33,7 +35,9 @@ let package = Package(
                 .product(name: "SharedTesting", package: "shared-testing"),
                 "StateKit"
             ],
-            plugins: [.plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")]
+            plugins: [
+//                .plugin(name: "SwiftLintBuildToolPlugin", package: "SwiftLintPlugins")
+            ]
         )
     ]
 )

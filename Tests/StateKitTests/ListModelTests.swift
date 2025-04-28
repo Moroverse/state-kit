@@ -7,7 +7,7 @@ import ConcurrencyExtras
 import Foundation
 import SharedTesting
 import Testing
-@testable import SharedFoundation
+@testable import StateKit
 
 @MainActor
 @Suite
@@ -347,7 +347,7 @@ private class QueryBuilderStub {
 }
 
 extension Paginated: Equatable where Item: Equatable {
-    public static func == (lhs: SharedFoundation.Paginated<Item>, rhs: SharedFoundation.Paginated<Item>) -> Bool {
+    public static func == (lhs: Paginated<Item>, rhs: Paginated<Item>) -> Bool {
         lhs.items == rhs.items &&
             lhs.hasMore == rhs.hasMore
     }

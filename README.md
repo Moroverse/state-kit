@@ -1,4 +1,4 @@
-# SharedFoundation
+# StateKit
 Core utilities and abstractions for managing application state and data flow.
 
 Key components:

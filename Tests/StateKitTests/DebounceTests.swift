@@ -4,7 +4,7 @@
 
 import Clocks
 import Testing
-@testable import SharedFoundation
+@testable import StateKit
 
 struct DebounceTests {
     @Test func testDebounce() async throws {
