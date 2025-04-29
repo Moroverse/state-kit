@@ -30,7 +30,6 @@ fi
 # Define argument variables
 TARGET=$1
 ARCHIVE_NAME=$TARGET
-TARGET_LOWERCASED=$(echo "$1" | tr '[:upper:]' '[:lower:]')
 
 # Remove TARGET from arguments list
 shift
@@ -44,6 +43,8 @@ if [ "$1" = "--archive" ]; then
     ARCHIVE_NAME=$2
     shift 2
 fi
+
+ARCHIVE_NAME_LOWERCASED=$(echo "$ARCHIVE_NAME" | tr '[:upper:]' '[:lower:]')
 
 # Define platforms variable
 if [ $# -eq 0 ]; then
@@ -104,7 +105,7 @@ build_platform() {
     fi
 
     # Inject a root redirect script on the root page
-    echo "<script>window.location.href += \"/documentation/$TARGET_LOWERCASED\"</script>" > ${WEBSITE_OUTPUT_PATH}/index.html;
+    echo "<script>window.location.href += \"/documentation/$ARCHIVE_NAME_LOWERCASED\"</script>" > ${WEBSITE_OUTPUT_PATH}/index.html;
 
     # Complete successfully
     echo "Successfully built $TARGET docs for $PLATFORM"

@@ -9,3 +9,7 @@ Key components:
 - `Debouncer`: A utility for managing rate-limited operations.
 - `Paginated`: A structure for handling paginated collections.
 - Event handling protocols: `Event`, `EventSubscription`, `EventBroker`, etc.
+
+## License
+
+MIT License - See [LICENSE.txt](LICENSE.txt) for details.

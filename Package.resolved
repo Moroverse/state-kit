@@ -1,5 +1,5 @@
 {
-  "originHash" : "3ea92a3f4f61071266e56280f3f4687720f909b35afe0bd31c9748f7786b9968",
+  "originHash" : "8e1b6bbddb434463e9216bc8a387148a29dd8be13a04e174068895af704870a2",
   "pins" : [
     {
       "identity" : "swift-clocks",
@@ -33,8 +33,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/Moroverse/test-kit.git",
       "state" : {
-        "revision" : "48d6f38cf78476f19b11668d790bf4b0833a6632",
-        "version" : "0.3.2"
+        "revision" : "f64714892542a9fc863a903444689885fb991c4e",
+        "version" : "0.3.3"
       }
     },
     {

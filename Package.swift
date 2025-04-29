@@ -7,7 +7,8 @@ let package = Package(
     name: "state-kit",
     platforms: [
         .iOS(.v17),
-        .macOS(.v14)
+        .macOS(.v14),
+        .macCatalyst(.v17)
     ],
     products: [
         // Products define the executables and libraries a package produces, making them visible to other packages.
@@ -19,7 +20,7 @@ let package = Package(
     dependencies: [
         //        .package(url: "https://github.com/SimplyDanny/SwiftLintPlugins", from: "0.58.2"),
         .package(url: "https://github.com/pointfreeco/swift-clocks.git", from: "1.0.6"),
-        .package(url: "https://github.com/Moroverse/test-kit.git", from: "0.3.2")
+        .package(url: "https://github.com/Moroverse/test-kit.git", from: "0.3.3")
     ],
     targets: [
         .target(
