@@ -10,6 +10,12 @@ Key components:
 - `Paginated`: A structure for handling paginated collections.
 - Event handling protocols: `Event`, `EventSubscription`, `EventBroker`, etc.
 
+## Documentation
+
+The [online documentation][Documentation] has more information, code examples, etc.
+
 ## License
 
 MIT License - See [LICENSE.txt](LICENSE.txt) for details.
+
+[Documentation]: https://moroverse.github.io/state-kit
