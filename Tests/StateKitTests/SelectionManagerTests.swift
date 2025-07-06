@@ -45,6 +45,24 @@ struct SelectionManagerTests {
         
         #expect(callbackTriggered == false)
     }
+    
+    @Test
+    func callbackSelectionManager_doesNotTriggerCallbackWhenSelectedIDIsNil() async throws {
+        let items = [
+            TestItem(id: "1", name: "Item 1"),
+            TestItem(id: "2", name: "Item 2")
+        ]
+        
+        var callbackTriggered = false
+        let selectionManager = CallbackSelectionManager<TestItem> { _ in
+            callbackTriggered = true
+        }
+        
+        selectionManager.selectedID = nil
+        selectionManager.handleSelection(from: items)
+        
+        #expect(callbackTriggered == false)
+    }
 }
 
 // MARK: - Test Helpers
