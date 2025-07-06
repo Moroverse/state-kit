@@ -154,8 +154,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
 
     public var state: ListLoadingState<Model>
 
-    private let emptyContentLabel: LocalizedStringResource
-    private let emptyContentImageResource: String
+    private let configuration: ListModelConfiguration
     public var selection: Model.Element.ID? {
         get { selectionManager.selectedID }
         set {
@@ -182,12 +181,11 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
             }
             return try await loadModel(query: query, forceReload: forceReload)
         },
-        after: .seconds(0.5),
-        clock: clock
+        after: configuration.debounceDelay,
+        clock: configuration.clock
     )
 
     private let queryBuilder: QueryBuilder<Query>
-    private let clock: any Clock<Duration>
     @ObservationIgnored
     private var cachedQuery: Query?
     @ObservationIgnored
@@ -207,20 +205,16 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
      */
     public init(
         selection: Model.Element.ID? = nil,
-        emptyContentLabel: LocalizedStringResource = "No results",
-        emptyContentImageResource: String = "magnifyingglass",
-        clock: any Clock<Duration> = ContinuousClock(),
+        configuration: ListModelConfiguration = .default,
         loader: @escaping ModelLoader<Query, Model>,
         queryBuilder: @escaping QueryBuilder<Query>,
         onSelectionChange: ((Model.Element?) -> Void)? = nil
     ) {
-        state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
+        self.configuration = configuration
+        state = .empty(label: configuration.emptyContentLabel, image: configuration.emptyContentImageResource)
         self.loader = loader
         self.queryBuilder = queryBuilder
-        self.clock = clock
         selectionManager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
-        self.emptyContentLabel = emptyContentLabel
-        self.emptyContentImageResource = emptyContentImageResource
         self.selection = selection
     }
 
@@ -293,7 +287,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
                 throw CancellationError()
             }
             if model.isEmpty {
-                state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
+                state = .empty(label: configuration.emptyContentLabel, image: configuration.emptyContentImageResource)
             } else {
                 state = .loaded(model, loadMoreState: loadMoreState(for: model))
             }
@@ -356,7 +350,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
             let model = try await task.value
             state = .loaded(model, loadMoreState: loadMoreState(for: model))
         } catch {
-            state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
+            state = .empty(label: configuration.emptyContentLabel, image: configuration.emptyContentImageResource)
             cachedQuery = nil
             throw error
         }

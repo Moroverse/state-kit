@@ -24,7 +24,12 @@ struct ListModelTests {
         let clock = ImmediateClock()
 
         let sut = ListModel(
-            clock: clock,
+            configuration: ListModelConfiguration(
+                emptyContentLabel: "No results",
+                emptyContentImageResource: "magnifyingglass",
+                debounceDelay: .seconds(0.5),
+                clock: clock
+            ),
             loader: loader.load,
             queryBuilder: queryBuilder.build
         )
@@ -48,7 +53,12 @@ struct ListModelTests {
         let clock = TestClock()
 
         let sut = ListModel(
-            clock: clock,
+            configuration: ListModelConfiguration(
+                emptyContentLabel: "No results",
+                emptyContentImageResource: "magnifyingglass",
+                debounceDelay: .seconds(0.5),
+                clock: clock
+            ),
             loader: loader.load,
             queryBuilder: queryBuilder.build
         )
@@ -73,7 +83,12 @@ struct ListModelTests {
         let clock = ImmediateClock()
 
         let sut = ListModel(
-            clock: clock,
+            configuration: ListModelConfiguration(
+                emptyContentLabel: "No results",
+                emptyContentImageResource: "magnifyingglass",
+                debounceDelay: .seconds(0.5),
+                clock: clock
+            ),
             loader: loader.load,
             queryBuilder: queryBuilder.build,
             onSelectionChange: onSelectionChange
@@ -512,7 +527,12 @@ struct ListModelTests {
         let clock = ImmediateClock()
 
         let sut = ListModel(
-            clock: clock,
+            configuration: ListModelConfiguration(
+                emptyContentLabel: "No results",
+                emptyContentImageResource: "magnifyingglass",
+                debounceDelay: .seconds(0.5),
+                clock: clock
+            ),
             loader: loader.load,
             queryBuilder: queryBuilder.build,
             onSelectionChange: { selected in

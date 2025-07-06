@@ -29,4 +29,12 @@ struct ListModelConfigurationTests {
         
         #expect(config.debounceDelay == .seconds(0.5))
     }
+    
+    @Test
+    func defaultConfiguration_hasClock() async throws {
+        let config = ListModelConfiguration.default
+        
+        // Can't easily test clock equality, just verify it exists and is ContinuousClock
+        #expect(config.clock is ContinuousClock)
+    }
 }
