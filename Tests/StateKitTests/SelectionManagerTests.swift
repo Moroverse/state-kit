@@ -27,6 +27,24 @@ struct SelectionManagerTests {
         #expect(selectedItem?.id == "2")
         #expect(selectedItem?.name == "Item 2")
     }
+    
+    @Test
+    func callbackSelectionManager_doesNotTriggerCallbackWhenElementNotFound() async throws {
+        let items = [
+            TestItem(id: "1", name: "Item 1"),
+            TestItem(id: "2", name: "Item 2")
+        ]
+        
+        var callbackTriggered = false
+        let selectionManager = CallbackSelectionManager<TestItem> { _ in
+            callbackTriggered = true
+        }
+        
+        selectionManager.selectedID = "99" // Non-existent ID
+        selectionManager.handleSelection(from: items)
+        
+        #expect(callbackTriggered == false)
+    }
 }
 
 // MARK: - Test Helpers
