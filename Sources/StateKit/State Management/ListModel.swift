@@ -157,19 +157,22 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
     private let emptyContentLabel: LocalizedStringResource
     private let emptyContentImageResource: String
     public var selection: Model.Element.ID? {
-        didSet {
-            if let selection, let onSelectionChange, case let .loaded(model, _) = state {
-                if let element = model.first(where: { $0.id == selection }) {
-                    onSelectionChange(element)
-                }
+        get { selectionManager.selectedID }
+        set {
+            selectionManager.selectedID = newValue
+            
+            // ListModel decides WHEN to call SelectionManager based on state
+            if case let .loaded(model, _) = state {
+                selectionManager.handleSelection(from: model)
             }
         }
     }
 
     public var canHandleSelection: Bool {
-        onSelectionChange != nil
+        selectionManager.canHandleSelection
     }
 
+    private var selectionManager: any SelectionManager<Model.Element>
     private let loader: ModelLoader<Query, Model>
     @ObservationIgnored
     private lazy var loadModelDebounce: Debounce<Query, Bool, Model> = Debounce(
@@ -190,7 +193,6 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
     @ObservationIgnored
     private var latestQueryString = ""
 
-    private var onSelectionChange: ((Model.Element?) -> Void)?
 
     /**
      Initializes a new instance of `ListModel`.
@@ -217,7 +219,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
         self.loader = loader
         self.queryBuilder = queryBuilder
         self.clock = clock
-        self.onSelectionChange = onSelectionChange
+        self.selectionManager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
         self.emptyContentLabel = emptyContentLabel
         self.emptyContentImageResource = emptyContentImageResource
         self.selection = selection
