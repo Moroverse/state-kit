@@ -315,11 +315,15 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
                 if let paginated = model as? Paginated<Model.Element>,
                    let paginatedLoadMore = paginated.loadMore {
                     let action: @Sendable () async throws -> Model = {
-                        let result = try? await paginatedLoadMore()
-                        guard let typedResult = result as? Model else {
-                            throw ListModelError.invalidModel
+                        do {
+                            let result = try await paginatedLoadMore()
+                            guard let typedResult = result as? Model else {
+                                throw ListModelError.invalidModel
+                            }
+                            return typedResult
+                        } catch {
+                            throw error
                         }
-                        return typedResult
                     }
                     try await perform(action: action)
                 }
