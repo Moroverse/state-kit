@@ -298,7 +298,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
             }
             return model
         } catch let error as CancellationError {
-            state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
+            state = oldState
             throw error
         } catch {
             state = oldState
