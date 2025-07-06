@@ -6,12 +6,15 @@ import Foundation
 
 public struct ListModelConfiguration: Sendable {
     public let emptyContentLabel: LocalizedStringResource
+    public let emptyContentImageResource: String
     
     public static let `default` = ListModelConfiguration(
-        emptyContentLabel: "No results"
+        emptyContentLabel: "No results",
+        emptyContentImageResource: "magnifyingglass"
     )
     
-    public init(emptyContentLabel: LocalizedStringResource) {
+    public init(emptyContentLabel: LocalizedStringResource, emptyContentImageResource: String) {
         self.emptyContentLabel = emptyContentLabel
+        self.emptyContentImageResource = emptyContentImageResource
     }
 }
