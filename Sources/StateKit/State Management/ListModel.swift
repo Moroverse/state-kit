@@ -49,21 +49,21 @@ public indirect enum ListLoadingState<Model> where Model: RandomAccessCollection
     ///   - label: A localized string resource describing the empty state (e.g., "No items found")
     ///   - image: A system image name to display alongside the empty state message
     case empty(label: LocalizedStringResource, image: String)
-    
+
     /// The loading state when an asynchronous list loading operation is in progress.
     ///
     /// - Parameters:
     ///   - task: The active `Task` performing the loading operation for the collection
     ///   - previousState: The state that was active before loading began, allowing for state recovery
     case inProgress(Task<Model, Error>, previousState: Self)
-    
+
     /// The successful completion state containing the loaded collection and pagination information.
     ///
     /// - Parameters:
     ///   - collection: The successfully loaded collection of type `Model`
     ///   - loadMoreState: The current state of pagination, indicating whether more items can be loaded
     case loaded(Model, loadMoreState: LoadMoreState<Model>)
-    
+
     /// The error state when list loading fails.
     ///
     /// - Parameters:
@@ -160,7 +160,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
         get { selectionManager.selectedID }
         set {
             selectionManager.selectedID = newValue
-            
+
             // ListModel decides WHEN to call SelectionManager based on state
             if case let .loaded(model, _) = state {
                 selectionManager.handleSelection(from: model)
@@ -193,7 +193,6 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
     @ObservationIgnored
     private var latestQueryString = ""
 
-
     /**
      Initializes a new instance of `ListModel`.
 
@@ -219,7 +218,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
         self.loader = loader
         self.queryBuilder = queryBuilder
         self.clock = clock
-        self.selectionManager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
+        selectionManager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
         self.emptyContentLabel = emptyContentLabel
         self.emptyContentImageResource = emptyContentImageResource
         self.selection = selection
