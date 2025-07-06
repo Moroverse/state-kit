@@ -75,15 +75,13 @@ public indirect enum ListLoadingState<Model> where Model: RandomAccessCollection
 extension ListLoadingState: Equatable where Model: Equatable {}
 
 /**
- Represents the various states of a pagination "load more" operation.
-
  `LoadMoreState` is an enum that tracks the availability and progress of loading
  additional items in a paginated collection. This enum works in conjunction with
  `ListLoadingState` to provide comprehensive pagination support.
 
  ### States:
 
- - `empty`: No more items are available to load (end of pagination)
+ - `unavailable`: No more items are available to load (end of pagination) or collection does not support pagination
  - `inProgress`: Currently loading additional items
  - `ready`: More items are available and ready to be loaded
 
@@ -91,34 +89,29 @@ extension ListLoadingState: Equatable where Model: Equatable {}
 
  ```swift
  switch loadMoreState {
- case .empty:
-     // Hide "Load More" button - no more items available
+ case .unavailable:
+ // Hide "Load More" button - no more items available
  case let .inProgress(task):
-     // Show loading indicator for additional items
-     // Optionally await the task: try await task.value
+ // Show loading indicator for additional items
+ // Optionally await the task: try await task.value
  case .ready:
-     // Show "Load More" button - more items available
+ // Show "Load More" button - more items available
  }
  ```
 
  - Note: The generic `Model` type must conform to `RandomAccessCollection` to support efficient pagination operations.
  */
 public enum LoadMoreState<Model> where Model: RandomAccessCollection {
-    /// No more items are available to load.
+    /// Pagination is not available for this collection.
     ///
-    /// This state indicates that the collection has reached its end and no additional
-    /// items can be loaded through pagination.
-    case empty
-    
+    /// This state indicates that the collection does not support pagination
+    /// or has reached its end with no additional items available.
+    case unavailable
+
     /// Currently loading additional items for pagination.
-    ///
-    /// - Parameter task: The active `Task` performing the load more operation
     case inProgress(Task<Model, Error>)
-    
+
     /// More items are available and ready to be loaded.
-    ///
-    /// This state indicates that additional items can be loaded through pagination,
-    /// typically triggered by user interaction (e.g., "Load More" button or scroll to bottom).
     case ready
 }
 
@@ -418,7 +411,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
            paginated.loadMore != nil {
             .ready
         } else {
-            .empty
+            .unavailable
         }
     }
 }

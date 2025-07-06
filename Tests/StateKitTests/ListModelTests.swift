@@ -107,7 +107,7 @@ struct ListModelTests {
             } completeWith: {
                 .success(expectedItems)
             } expectationAfterCompletion: { _ in
-                #expect(sut.state == .loaded(expectedItems, loadMoreState: .empty))
+                #expect(sut.state == .loaded(expectedItems, loadMoreState: .unavailable))
             }
     }
 
@@ -159,14 +159,14 @@ struct ListModelTests {
         } completeWith: {
             .success(items1)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .loaded(items1, loadMoreState: .empty))
+            #expect(sut.state == .loaded(items1, loadMoreState: .unavailable))
         }
 
         // Second load with same query (should use cache)
         try await loader.async(yieldCount: 2) {
             await sut.load()
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .loaded(items1, loadMoreState: .empty))
+            #expect(sut.state == .loaded(items1, loadMoreState: .unavailable))
             #expect(loader.performCallCount == 1)
         }
 
@@ -176,7 +176,7 @@ struct ListModelTests {
         } completeWith: {
             .success(items2)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .loaded(items2, loadMoreState: .empty))
+            #expect(sut.state == .loaded(items2, loadMoreState: .unavailable))
             #expect(loader.performCallCount == 2)
         }
     }
@@ -229,7 +229,7 @@ struct ListModelTests {
                 .success(expectedItems)
             },
             expectationAfterCompletion: { _ in
-                #expect(sut.state == .loaded(expectedItems, loadMoreState: .empty))
+                #expect(sut.state == .loaded(expectedItems, loadMoreState: .unavailable))
                 #expect(queryBuilder.buildCallCount == 3)
                 #expect(loader.performCallCount == 1)
             }
@@ -280,7 +280,7 @@ struct ListModelTests {
 
         // Test loading more
         try await sut.loadMore()
-        #expect(sut.state == .loaded(Paginated(items: nextPageItems), loadMoreState: .empty))
+        #expect(sut.state == .loaded(Paginated(items: nextPageItems), loadMoreState: .unavailable))
     }
 
     @Test(.teardownTracking())
