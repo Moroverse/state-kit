@@ -378,6 +378,42 @@ struct ListModelTests {
         
         #expect(sut.canHandleSelection == true)
     }
+
+    @Test(.teardownTracking())
+    func canHandleSelection_returnsFalseWhenCallbackNotProvided() async throws {
+        let (sut, _, _) = await makeSUT(
+            onSelectionChange: nil // No callback provided
+        )
+        
+        #expect(sut.canHandleSelection == false)
+    }
+
+    @Test(.teardownTracking())
+    func selection_handlesEmptyCollection() async throws {
+        var selectedItem: TestListItem?
+        var callbackTriggered = false
+        let (sut, loader, queryBuilder) = await makeSUT(
+            onSelectionChange: { selected in
+                selectedItem = selected
+                callbackTriggered = true
+            }
+        )
+
+        queryBuilder.queries = [TestQuery(term: "test")]
+
+        // Load empty collection
+        try await loader.async(yieldCount: 2) {
+            await sut.load()
+        } completeWith: {
+            .success([]) // Empty array
+        }
+
+        // Try to select from empty collection
+        sut.selection = "1"
+        #expect(callbackTriggered == false)
+        #expect(selectedItem == nil)
+        #expect(sut.selection == "1") // Selection property should still be set
+    }
 }
 
 // MARK: - Test Helpers
