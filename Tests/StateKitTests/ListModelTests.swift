@@ -210,17 +210,17 @@ struct ListModelTests {
             yieldCount: 2,
             processes: [
                 .init(process: {
-                    await sut.onSearch("te")
+                    await sut.search("te")
                 }, processAdvance: {
                     await clock.advance(by: .seconds(0.2))
                 }),
                 .init(process: {
-                    await sut.onSearch("tes")
+                    await sut.search("tes")
                 }, processAdvance: {
                     await clock.advance(by: .seconds(0.2))
                 }),
                 .init(process: {
-                    await sut.onSearch("test")
+                    await sut.search("test")
                 }, processAdvance: {
                     await clock.advance(by: .seconds(0.6))
                 })

@@ -366,7 +366,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
      The query is constructed using the `queryBuilder` closure.
 
      */
-    public func onSearch(_ query: String) async {
+    public func search(_ query: String) async {
         latestQueryString = query
         let query = queryBuilder(latestQueryString)
         await load(query: query)
