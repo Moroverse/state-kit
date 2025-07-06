@@ -414,6 +414,45 @@ struct ListModelTests {
         #expect(selectedItem == nil)
         #expect(sut.selection == "1") // Selection property should still be set
     }
+
+    @Test(.teardownTracking())
+    func selection_handlesMultipleSelectionChanges() async throws {
+        let items = [
+            TestListItem(id: "1", name: "Item 1"),
+            TestListItem(id: "2", name: "Item 2"),
+            TestListItem(id: "3", name: "Item 3")
+        ]
+
+        var selectedItems: [TestListItem] = []
+        let (sut, loader, queryBuilder) = await makeSUT(
+            onSelectionChange: { selected in
+                if let selected {
+                    selectedItems.append(selected)
+                }
+            }
+        )
+
+        queryBuilder.queries = [TestQuery(term: "test")]
+
+        try await loader.async(yieldCount: 2) {
+            await sut.load()
+        } completeWith: {
+            .success(items)
+        }
+
+        // Multiple rapid selection changes
+        sut.selection = "1"
+        sut.selection = "2" 
+        sut.selection = "3"
+        sut.selection = "1"
+
+        #expect(selectedItems.count == 4)
+        #expect(selectedItems[0] == items[0]) // First selection: Item 1
+        #expect(selectedItems[1] == items[1]) // Second selection: Item 2
+        #expect(selectedItems[2] == items[2]) // Third selection: Item 3
+        #expect(selectedItems[3] == items[0]) // Fourth selection: Item 1 again
+        #expect(sut.selection == "1") // Final selection should be "1"
+    }
 }
 
 // MARK: - Test Helpers
