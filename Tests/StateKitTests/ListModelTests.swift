@@ -453,6 +453,50 @@ struct ListModelTests {
         #expect(selectedItems[3] == items[0]) // Fourth selection: Item 1 again
         #expect(sut.selection == "1") // Final selection should be "1"
     }
+
+    @Test(.teardownTracking())
+    func selection_maintainsSelectionAcrossStateChanges() async throws {
+        let initialItems = [
+            TestListItem(id: "1", name: "Item 1"),
+            TestListItem(id: "2", name: "Item 2")
+        ]
+        
+        let updatedItems = [
+            TestListItem(id: "1", name: "Updated Item 1"),
+            TestListItem(id: "3", name: "Item 3")
+        ]
+
+        var callbackCount = 0
+        let (sut, loader, queryBuilder) = await makeSUT(
+            onSelectionChange: { _ in
+                callbackCount += 1
+            }
+        )
+
+        queryBuilder.queries = [TestQuery(term: "test"), TestQuery(term: "updated")]
+
+        // Load initial data and select item
+        try await loader.async(yieldCount: 2) {
+            await sut.load()
+        } completeWith: {
+            .success(initialItems)
+        }
+
+        sut.selection = "1"
+        #expect(callbackCount == 1)
+        #expect(sut.selection == "1")
+
+        // Load new data - selection should be maintained, callback should NOT trigger
+        try await loader.async(yieldCount: 2, at: 1) {
+            await sut.load()
+        } completeWith: {
+            .success(updatedItems)
+        }
+
+        // Selection property maintained, callback NOT triggered automatically
+        #expect(sut.selection == "1") // Selection property maintained
+        #expect(callbackCount == 1) // Callback NOT triggered again on data reload
+    }
 }
 
 // MARK: - Test Helpers
