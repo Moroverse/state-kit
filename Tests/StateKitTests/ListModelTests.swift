@@ -497,6 +497,52 @@ struct ListModelTests {
         #expect(sut.selection == "1") // Selection property maintained
         #expect(callbackCount == 1) // Callback NOT triggered again on data reload
     }
+
+    @Test(.teardownTracking())
+    func selection_worksWithPaginatedResults() async throws {
+        let initialItems = [TestListItem(id: "1", name: "Item 1")]
+        let paginatedItems = [
+            TestListItem(id: "1", name: "Item 1"),
+            TestListItem(id: "2", name: "Item 2")
+        ]
+
+        var selectedItem: TestListItem?
+        let loader = AsyncSpy<Paginated<TestListItem>>()
+        let queryBuilder = QueryBuilderStub()
+        let clock = ImmediateClock()
+
+        let sut = ListModel(
+            clock: clock,
+            loader: loader.load,
+            queryBuilder: queryBuilder.build,
+            onSelectionChange: { selected in
+                selectedItem = selected
+            }
+        )
+
+        queryBuilder.queries = [TestQuery(term: "test")]
+
+        // Load initial paginated data
+        try await loader.async(yieldCount: 2) {
+            await sut.load()
+        } completeWith: {
+            .success(Paginated(items: initialItems) {
+                Paginated(items: paginatedItems)
+            })
+        }
+
+        // Select item from initial paginated results
+        sut.selection = "1"
+        #expect(selectedItem?.name == "Item 1")
+
+        // Load more data
+        try await sut.loadMore()
+        
+        // Select item that exists in paginated results
+        sut.selection = "2"
+        #expect(selectedItem?.name == "Item 2")
+        #expect(sut.selection == "2")
+    }
 }
 
 // MARK: - Test Helpers
