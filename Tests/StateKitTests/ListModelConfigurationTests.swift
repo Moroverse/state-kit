@@ -22,4 +22,11 @@ struct ListModelConfigurationTests {
         
         #expect(config.emptyContentImageResource == "magnifyingglass")
     }
+    
+    @Test
+    func defaultConfiguration_hasDebounceDelay() async throws {
+        let config = ListModelConfiguration.default
+        
+        #expect(config.debounceDelay == .seconds(0.5))
+    }
 }

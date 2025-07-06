@@ -7,14 +7,17 @@ import Foundation
 public struct ListModelConfiguration: Sendable {
     public let emptyContentLabel: LocalizedStringResource
     public let emptyContentImageResource: String
+    public let debounceDelay: Duration
     
     public static let `default` = ListModelConfiguration(
         emptyContentLabel: "No results",
-        emptyContentImageResource: "magnifyingglass"
+        emptyContentImageResource: "magnifyingglass",
+        debounceDelay: .seconds(0.5)
     )
     
-    public init(emptyContentLabel: LocalizedStringResource, emptyContentImageResource: String) {
+    public init(emptyContentLabel: LocalizedStringResource, emptyContentImageResource: String, debounceDelay: Duration) {
         self.emptyContentLabel = emptyContentLabel
         self.emptyContentImageResource = emptyContentImageResource
+        self.debounceDelay = debounceDelay
     }
 }
