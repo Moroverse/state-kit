@@ -4,6 +4,7 @@
 
 import Foundation
 import Observation
+import DeveloperToolsSupport
 
 /**
  A model for managing asynchronous loading and state management of a collection based on queries.
@@ -44,6 +45,27 @@ public enum LoadMoreState<Model> {
 
 extension LoadMoreState: Equatable {}
 
+public indirect enum ListState<Model> {
+    /// Indicates that there is no data available.
+    ///
+    /// This case is used when the data is in an empty state.
+    case empty(label: LocalizedStringResource, image: String)
+
+    /// Indicates that the data is currently being loaded.
+    ///
+    /// This case is used to represent the loading state.
+    case inProgress(Task<Model, Error>, currentState: Self)
+
+    /// Indicates that the data has been successfully loaded.
+    ///
+    /// This case holds the loaded data of type `Model`.
+    ///
+    /// - Parameter model: The model data that has been loaded.
+    case ready(Model)
+}
+
+extension ListState: Equatable where Model: Equatable {}
+
 @MainActor
 @Observable
 open class ListModel<Model: RandomAccessCollection, Query: Sendable>
@@ -53,12 +75,12 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
         case instanceDeallocated
     }
 
-    public var state: ContentState<Model> = .empty
+    public var state: ListState<Model>
     public var errorMessage: LocalizedStringResource?
     public var loadMoreState: LoadMoreState<Model> = .empty
 
-    public var emptyContentLabel: LocalizedStringResource
-    public var emptyContentImageName: String
+    private let emptyContentLabel: LocalizedStringResource
+    private let emptyContentImageResource: String
     public var selection: Model.Element.ID? {
         didSet {
             if let selection, let onSelectionChange, case let .ready(model) = state {
@@ -110,18 +132,19 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
     public init(
         selection: Model.Element.ID? = nil,
         emptyContentLabel: LocalizedStringResource = "No results",
-        emptyContentImageName: String = "magnifyingglass",
+        emptyContentImageResource: String = "magnifyingglass",
         clock: any Clock<Duration> = ContinuousClock(),
         loader: @escaping ModelLoader<Query, Model>,
         queryBuilder: @escaping QueryBuilder<Query>,
         onSelectionChange: ((Model.Element?) -> Void)? = nil
     ) {
+        self.state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
         self.loader = loader
         self.queryBuilder = queryBuilder
         self.clock = clock
         self.onSelectionChange = onSelectionChange
         self.emptyContentLabel = emptyContentLabel
-        self.emptyContentImageName = emptyContentImageName
+        self.emptyContentImageResource = emptyContentImageResource
         self.selection = selection
     }
 
@@ -194,13 +217,13 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
                 throw CancellationError()
             }
             if model.isEmpty {
-                state = .empty
+                state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
             } else {
                 updateReadyState(.ready(model))
             }
             return model
         } catch let error as CancellationError {
-            updateReadyState(.empty)
+            updateReadyState(.empty(label: emptyContentLabel, image: emptyContentImageResource))
             throw error
         } catch {
             updateReadyState(oldState)
@@ -243,7 +266,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
             let model = try await task.value
             updateReadyState(.ready(model))
         } catch {
-            updateReadyState(.empty)
+            updateReadyState(.empty(label: emptyContentLabel, image: emptyContentImageResource))
             cachedQuery = nil
             throw error
         }
@@ -298,7 +321,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
         }
     }
 
-    private func updateReadyState(_ newReadyState: ContentState<Model>) {
+    private func updateReadyState(_ newReadyState: ListState<Model>) {
         state = newReadyState
         makeLoadMoreModel()
     }

@@ -92,7 +92,7 @@ struct ListModelTests {
     func init_setsEmptyStateAndNilErrorMessage() async throws {
         let (sut, _, _) = await makeSUT()
 
-        #expect(sut.state == .empty)
+        #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
         #expect(sut.errorMessage == nil)
     }
 
@@ -124,7 +124,7 @@ struct ListModelTests {
             } completeWith: {
                 .success([])
             } expectationAfterCompletion: { _ in
-                #expect(sut.state == .empty)
+                #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
                 #expect(sut.errorMessage == nil)
             }
     }
@@ -196,7 +196,7 @@ struct ListModelTests {
             } completeWith: {
                 .success(expectedItems)
             } expectationAfterCompletion: { _ in
-                #expect(sut.state == .empty)
+                #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
                 #expect(sut.errorMessage == nil)
             }
     }
