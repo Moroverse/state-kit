@@ -34,8 +34,7 @@ struct DetailModelTests {
     @Test(.teardownTracking())
     func init_setsEmptyStateAndNilError() async throws {
         let (sut, _, _) = await makeSUT()
-        #expect(sut.state == .empty)
-        #expect(sut.error == nil)
+        #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
     }
 
     @Test(.teardownTracking())
@@ -50,8 +49,7 @@ struct DetailModelTests {
             } completeWith: {
                 .success(expectedModel)
             } expectationAfterCompletion: { _ in
-                #expect(sut.state == .ready(expectedModel))
-                #expect(sut.error == nil)
+                #expect(sut.state == .loaded(expectedModel))
             }
     }
 
@@ -66,8 +64,7 @@ struct DetailModelTests {
         } completeWith: {
             .failure(expectedError)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .empty)
-            #expect(sut.error as NSError? == expectedError)
+            #expect(sut.state == .error("\(expectedError.localizedDescription)", previousState: .empty(label: "No results", image: "magnifyingglass")))
         }
     }
 
@@ -84,14 +81,14 @@ struct DetailModelTests {
         } completeWith: {
             .success(model1)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .ready(model1))
+            #expect(sut.state == .loaded(model1))
         }
 
         // Second load with same query (should use cache)
         try await loader.async {
             await sut.load()
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .ready(model1))
+            #expect(sut.state == .loaded(model1))
             #expect(loader.performCallCount == 1)
         }
 
@@ -102,7 +99,7 @@ struct DetailModelTests {
             .success(model2)
         }
         expectationAfterCompletion: {
-            #expect(sut.state == .ready(model2))
+            #expect(sut.state == .loaded(model2))
             #expect(loader.performCallCount == 2)
         }
     }
@@ -119,7 +116,7 @@ struct DetailModelTests {
             sut.cancel()
             return .success(anyModel)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .empty)
+            #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
         }
     }
 }

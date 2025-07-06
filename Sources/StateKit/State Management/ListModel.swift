@@ -7,6 +7,124 @@ import Foundation
 import Observation
 
 /**
+ Represents the various states of an asynchronous list loading operation.
+
+ `ListLoadingState` is an indirect enum that tracks the progression of loading a collection,
+ from empty state through loading, completion, or error states. This enum is specifically
+ designed for collections and includes support for pagination through the `loadMoreState`
+ parameter in the `loaded` case.
+
+ ### States:
+
+ - `empty`: The initial state before any loading begins or when no results are found
+ - `inProgress`: Currently loading with an active task
+ - `loaded`: Successfully loaded with the resulting collection and pagination state
+ - `error`: Failed to load with error information
+
+ ### Usage Example:
+
+ ```swift
+ switch listLoadingState {
+ case let .empty(label, image):
+     // Show empty state UI for lists (e.g., "No items found")
+ case let .inProgress(task, previousState):
+     // Show loading indicator for list content
+ case let .loaded(collection, loadMoreState):
+     // Display the loaded collection
+     // Handle pagination based on loadMoreState
+ case let .error(message, previousState):
+     // Show error message, can fall back to previous state
+ }
+ ```
+
+ - Note: This enum is `indirect` because it contains recursive references to `Self` in the `previousState` parameters.
+ - Note: The generic `Model` type must conform to `RandomAccessCollection` to support efficient list operations.
+ */
+public indirect enum ListLoadingState<Model> where Model: RandomAccessCollection {
+    /// The initial empty state before any loading operation begins, or when no results are found.
+    ///
+    /// This state is used both for the initial state and when a search/load operation returns no results.
+    ///
+    /// - Parameters:
+    ///   - label: A localized string resource describing the empty state (e.g., "No items found")
+    ///   - image: A system image name to display alongside the empty state message
+    case empty(label: LocalizedStringResource, image: String)
+    
+    /// The loading state when an asynchronous list loading operation is in progress.
+    ///
+    /// - Parameters:
+    ///   - task: The active `Task` performing the loading operation for the collection
+    ///   - previousState: The state that was active before loading began, allowing for state recovery
+    case inProgress(Task<Model, Error>, previousState: Self)
+    
+    /// The successful completion state containing the loaded collection and pagination information.
+    ///
+    /// - Parameters:
+    ///   - collection: The successfully loaded collection of type `Model`
+    ///   - loadMoreState: The current state of pagination, indicating whether more items can be loaded
+    case loaded(Model, loadMoreState: LoadMoreState<Model>)
+    
+    /// The error state when list loading fails.
+    ///
+    /// - Parameters:
+    ///   - message: A localized string resource describing the error
+    ///   - previousState: The state that was active before the error occurred, enabling fallback behavior
+    case error(LocalizedStringResource, previousState: Self)
+}
+
+extension ListLoadingState: Equatable where Model: Equatable {}
+
+/**
+ Represents the various states of a pagination "load more" operation.
+
+ `LoadMoreState` is an enum that tracks the availability and progress of loading
+ additional items in a paginated collection. This enum works in conjunction with
+ `ListLoadingState` to provide comprehensive pagination support.
+
+ ### States:
+
+ - `empty`: No more items are available to load (end of pagination)
+ - `inProgress`: Currently loading additional items
+ - `ready`: More items are available and ready to be loaded
+
+ ### Usage Example:
+
+ ```swift
+ switch loadMoreState {
+ case .empty:
+     // Hide "Load More" button - no more items available
+ case let .inProgress(task):
+     // Show loading indicator for additional items
+     // Optionally await the task: try await task.value
+ case .ready:
+     // Show "Load More" button - more items available
+ }
+ ```
+
+ - Note: The generic `Model` type must conform to `RandomAccessCollection` to support efficient pagination operations.
+ */
+public enum LoadMoreState<Model> where Model: RandomAccessCollection {
+    /// No more items are available to load.
+    ///
+    /// This state indicates that the collection has reached its end and no additional
+    /// items can be loaded through pagination.
+    case empty
+    
+    /// Currently loading additional items for pagination.
+    ///
+    /// - Parameter task: The active `Task` performing the load more operation
+    case inProgress(Task<Model, Error>)
+    
+    /// More items are available and ready to be loaded.
+    ///
+    /// This state indicates that additional items can be loaded through pagination,
+    /// typically triggered by user interaction (e.g., "Load More" button or scroll to bottom).
+    case ready
+}
+
+extension LoadMoreState: Equatable {}
+
+/**
  A model for managing asynchronous loading and state management of a collection based on queries.
 
  Use the `ListModel` class to asynchronously load and manage state for a collection of models,
@@ -32,41 +150,6 @@ import Observation
  // Perform a search
  await listModel.onSearch("search query")
  */
-
-public indirect enum ListState<Model> {
-    /// Indicates that there is no data available.
-    ///
-    /// This case is used when the data is in an empty state.
-    case empty(label: LocalizedStringResource, image: String)
-
-    /// Indicates that the data is currently being loaded.
-    ///
-    /// This case is used to represent the loading state.
-    case inProgress(Task<Model, Error>, currentState: Self)
-
-    /// Indicates that the data has been successfully loaded.
-    ///
-    /// This case holds the loaded data of type `Model`.
-    ///
-    /// - Parameter model: The model data that has been loaded.
-    case loaded(Model, loadMoreState: LoadMoreState<Model>)
-    case error(LocalizedStringResource, currentState: Self)
-}
-
-extension ListState: Equatable where Model: Equatable {}
-
-/// Represents the state of loading more items in a list.
-public enum LoadMoreState<Model> {
-    /// No more items to load.
-    case empty
-    /// Currently loading more items.
-    case inProgress(Task<Model, Error>)
-    /// Ready to load more items.
-    case ready
-}
-
-extension LoadMoreState: Equatable {}
-
 @MainActor
 @Observable
 open class ListModel<Model: RandomAccessCollection, Query: Sendable>
@@ -76,7 +159,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
         case instanceDeallocated
     }
 
-    public var state: ListState<Model>
+    public var state: ListLoadingState<Model>
 
     private let emptyContentLabel: LocalizedStringResource
     private let emptyContentImageResource: String
@@ -179,7 +262,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
             _ = try await loadModelDebounce(query, forceReload)
         } catch is CancellationError {
         } catch {
-            state = .error("\(error.localizedDescription)", currentState: state)
+            state = .error("\(error.localizedDescription)", previousState: state)
         }
     }
 
@@ -208,7 +291,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
         }
 
         cachedQuery = query
-        state = .inProgress(task, currentState: oldState)
+        state = .inProgress(task, previousState: oldState)
 
         do {
             let model = try await task.value
