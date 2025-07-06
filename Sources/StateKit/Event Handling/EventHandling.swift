@@ -32,7 +32,7 @@ public protocol EventPublisher {
     /// Publishes an event of type `T`.
     ///
     /// - Parameter event: The event to be published.
-    func publish<T: Event>(_ event: T)
+    func publish(_ event: some Event)
 }
 
 /// A protocol representing an event broker that handles event publication and subscription.

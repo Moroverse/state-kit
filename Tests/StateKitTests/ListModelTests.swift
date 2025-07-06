@@ -93,7 +93,6 @@ struct ListModelTests {
         let (sut, _, _) = await makeSUT()
 
         #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
-        #expect(sut.errorMessage == nil)
     }
 
     @Test(.teardownTracking())
@@ -108,8 +107,7 @@ struct ListModelTests {
             } completeWith: {
                 .success(expectedItems)
             } expectationAfterCompletion: { _ in
-                #expect(sut.state == .ready(expectedItems))
-                #expect(sut.errorMessage == nil)
+                #expect(sut.state == .loaded(expectedItems, loadMoreState: .empty))
             }
     }
 
@@ -125,7 +123,6 @@ struct ListModelTests {
                 .success([])
             } expectationAfterCompletion: { _ in
                 #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
-                #expect(sut.errorMessage == nil)
             }
     }
 
@@ -141,7 +138,9 @@ struct ListModelTests {
             } completeWith: {
                 .failure(expectedError)
             } expectationAfterCompletion: { _ in
-                #expect(sut.errorMessage != nil)
+                #expect({
+                    if case .error = sut.state { true } else { false }
+                }())
             }
     }
 
@@ -160,14 +159,14 @@ struct ListModelTests {
         } completeWith: {
             .success(items1)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .ready(items1))
+            #expect(sut.state == .loaded(items1, loadMoreState: .empty))
         }
 
         // Second load with same query (should use cache)
         try await loader.async(yieldCount: 2) {
             await sut.load()
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .ready(items1))
+            #expect(sut.state == .loaded(items1, loadMoreState: .empty))
             #expect(loader.performCallCount == 1)
         }
 
@@ -177,7 +176,7 @@ struct ListModelTests {
         } completeWith: {
             .success(items2)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .ready(items2))
+            #expect(sut.state == .loaded(items2, loadMoreState: .empty))
             #expect(loader.performCallCount == 2)
         }
     }
@@ -197,7 +196,6 @@ struct ListModelTests {
                 .success(expectedItems)
             } expectationAfterCompletion: { _ in
                 #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
-                #expect(sut.errorMessage == nil)
             }
     }
 
@@ -231,7 +229,7 @@ struct ListModelTests {
                 .success(expectedItems)
             },
             expectationAfterCompletion: { _ in
-                #expect(sut.state == .ready(expectedItems))
+                #expect(sut.state == .loaded(expectedItems, loadMoreState: .empty))
                 #expect(queryBuilder.buildCallCount == 3)
                 #expect(loader.performCallCount == 1)
             }
@@ -277,12 +275,12 @@ struct ListModelTests {
                 Paginated(items: nextPageItems)
             })
         } expectationAfterCompletion: { _ in
-            #expect(sut.loadMoreState == .ready)
+            #expect(sut.state == .loaded(Paginated(items: initialItems) { Paginated(items: nextPageItems) }, loadMoreState: .ready))
         }
 
         // Test loading more
         try await sut.loadMore()
-        #expect(sut.state == .ready(Paginated(items: nextPageItems)))
+        #expect(sut.state == .loaded(Paginated(items: nextPageItems), loadMoreState: .empty))
     }
 
     @Test(.teardownTracking())

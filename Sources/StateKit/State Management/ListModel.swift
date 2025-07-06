@@ -1,10 +1,10 @@
 // ListModel.swift
 // Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2024-08-07 18:45 GMT.
+// Created by Daniel Moro on 2025-07-06 04:16 GMT.
 
+import DeveloperToolsSupport
 import Foundation
 import Observation
-import DeveloperToolsSupport
 
 /**
  A model for managing asynchronous loading and state management of a collection based on queries.
@@ -33,18 +33,6 @@ import DeveloperToolsSupport
  await listModel.onSearch("search query")
  */
 
-/// Represents the state of loading more items in a list.
-public enum LoadMoreState<Model> {
-    /// No more items to load.
-    case empty
-    /// Currently loading more items.
-    case inProgress(Task<Model, Error>)
-    /// Ready to load more items.
-    case ready
-}
-
-extension LoadMoreState: Equatable {}
-
 public indirect enum ListState<Model> {
     /// Indicates that there is no data available.
     ///
@@ -61,29 +49,40 @@ public indirect enum ListState<Model> {
     /// This case holds the loaded data of type `Model`.
     ///
     /// - Parameter model: The model data that has been loaded.
-    case ready(Model)
+    case loaded(Model, loadMoreState: LoadMoreState<Model>)
+    case error(LocalizedStringResource, currentState: Self)
 }
 
 extension ListState: Equatable where Model: Equatable {}
 
+/// Represents the state of loading more items in a list.
+public enum LoadMoreState<Model> {
+    /// No more items to load.
+    case empty
+    /// Currently loading more items.
+    case inProgress(Task<Model, Error>)
+    /// Ready to load more items.
+    case ready
+}
+
+extension LoadMoreState: Equatable {}
+
 @MainActor
 @Observable
 open class ListModel<Model: RandomAccessCollection, Query: Sendable>
-    where Model: Sendable, Query: Sendable & Equatable, Model.Element: Identifiable {
+    where Model: Sendable, Query: Sendable & Equatable, Model.Element: Identifiable, Model.Element: Sendable {
     enum ListModelError: LocalizedError {
         case invalidModel
         case instanceDeallocated
     }
 
     public var state: ListState<Model>
-    public var errorMessage: LocalizedStringResource?
-    public var loadMoreState: LoadMoreState<Model> = .empty
 
     private let emptyContentLabel: LocalizedStringResource
     private let emptyContentImageResource: String
     public var selection: Model.Element.ID? {
         didSet {
-            if let selection, let onSelectionChange, case let .ready(model) = state {
+            if let selection, let onSelectionChange, case let .loaded(model, _) = state {
                 if let element = model.first(where: { $0.id == selection }) {
                     onSelectionChange(element)
                 }
@@ -138,7 +137,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
         queryBuilder: @escaping QueryBuilder<Query>,
         onSelectionChange: ((Model.Element?) -> Void)? = nil
     ) {
-        self.state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
+        state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
         self.loader = loader
         self.queryBuilder = queryBuilder
         self.clock = clock
@@ -180,7 +179,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
             _ = try await loadModelDebounce(query, forceReload)
         } catch is CancellationError {
         } catch {
-            errorMessage = "\(error.localizedDescription)"
+            state = .error("\(error.localizedDescription)", currentState: state)
         }
     }
 
@@ -188,7 +187,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
     public func loadModel(query: Query, forceReload: Bool = false) async throws -> Model {
         if !forceReload, let cachedQuery, cachedQuery == query {
             switch state {
-            case let .ready(model):
+            case let .loaded(model, _):
                 return model
 
             case let .inProgress(task, _):
@@ -219,36 +218,42 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
             if model.isEmpty {
                 state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
             } else {
-                updateReadyState(.ready(model))
+                state = .loaded(model, loadMoreState: loadMoreState(for: model))
             }
             return model
         } catch let error as CancellationError {
-            updateReadyState(.empty(label: emptyContentLabel, image: emptyContentImageResource))
+            state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
             throw error
         } catch {
-            updateReadyState(oldState)
+            state = oldState
             cachedQuery = nil
             throw error
         }
     }
 
     public func loadMore() async throws {
-        switch loadMoreState {
-        case .ready:
-            if case let .ready(model) = state,
-               let paginated = model as? Paginated<Model.Element>,
-               let paginatedLoadMore = paginated.loadMore {
-                try await perform(action: {
-                    let result = try? await paginatedLoadMore()
-                    guard let result = result as? Model else {
-                        throw ListModelError.invalidModel
+        switch state {
+        case let .loaded(model, loadMoreState):
+            switch loadMoreState {
+            case .ready:
+                if let paginated = model as? Paginated<Model.Element>,
+                   let paginatedLoadMore = paginated.loadMore {
+                    let action: @Sendable () async throws -> Model = {
+                        let result = try? await paginatedLoadMore()
+                        guard let typedResult = result as? Model else {
+                            throw ListModelError.invalidModel
+                        }
+                        return typedResult
                     }
-                    return result
-                })
-            }
+                    try await perform(action: action)
+                }
 
-        case let .inProgress(task):
-            _ = try await task.value
+            case let .inProgress(task):
+                _ = try await task.value
+
+            default:
+                break
+            }
 
         default:
             break
@@ -256,17 +261,21 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
     }
 
     private func perform(action: @escaping @Sendable () async throws -> Model) async throws {
+        guard case let .loaded(model, _) = state else {
+            return
+        }
+
         let task = Task {
             try await action()
         }
 
-        loadMoreState = .inProgress(task)
+        state = .loaded(model, loadMoreState: .inProgress(task))
 
         do {
             let model = try await task.value
-            updateReadyState(.ready(model))
+            state = .loaded(model, loadMoreState: loadMoreState(for: model))
         } catch {
-            updateReadyState(.empty(label: emptyContentLabel, image: emptyContentImageResource))
+            state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
             cachedQuery = nil
             throw error
         }
@@ -299,7 +308,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
 
      */
     public func element(at index: Int) -> Model.Element? {
-        if case let .ready(model) = state {
+        if case let .loaded(model, _) = state {
             let modelIndex = model.index(model.startIndex, offsetBy: index)
             guard modelIndex < model.endIndex else { return nil }
             return model[modelIndex]
@@ -321,18 +330,12 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
         }
     }
 
-    private func updateReadyState(_ newReadyState: ListState<Model>) {
-        state = newReadyState
-        makeLoadMoreModel()
-    }
-
-    private func makeLoadMoreModel() {
-        if case let .ready(model) = state,
-           let paginated = model as? Paginated<Model.Element>,
+    private func loadMoreState(for model: Model) -> LoadMoreState<Model> {
+        if let paginated = model as? Paginated<Model.Element>,
            paginated.loadMore != nil {
-            loadMoreState = .ready
+            .ready
         } else {
-            loadMoreState = .empty
+            .empty
         }
     }
 }
