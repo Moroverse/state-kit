@@ -308,6 +308,76 @@ struct ListModelTests {
         sut.selection = "2"
         #expect(selectedItem == items[1])
     }
+
+    @Test(.teardownTracking())
+    func selection_doesNotTriggerCallbackWhenItemNotFound() async throws {
+        let items = [
+            TestListItem(id: "1", name: "Item 1"),
+            TestListItem(id: "2", name: "Item 2")
+        ]
+
+        var selectedItem: TestListItem?
+        var callbackTriggered = false
+        let (sut, loader, queryBuilder) = await makeSUT(
+            onSelectionChange: { selected in
+                selectedItem = selected
+                callbackTriggered = true
+            }
+        )
+
+        queryBuilder.queries = [TestQuery(term: "test")]
+
+        try await loader.async(yieldCount: 2) {
+            await sut.load()
+        } completeWith: {
+            .success(items)
+        }
+
+        sut.selection = "99" // ID that doesn't exist
+        #expect(callbackTriggered == false)
+        #expect(selectedItem == nil)
+    }
+
+    @Test(.teardownTracking())
+    func selection_doesNotTriggerCallbackWhenStateNotLoaded() async throws {
+        var selectedItem: TestListItem?
+        var callbackTriggered = false
+        let (sut, _, _) = await makeSUT(
+            onSelectionChange: { selected in
+                selectedItem = selected
+                callbackTriggered = true
+            }
+        )
+
+        // State is .empty, not .loaded
+        sut.selection = "1"
+        #expect(callbackTriggered == false)
+        #expect(selectedItem == nil)
+    }
+
+    @Test(.teardownTracking())
+    func selection_setsSelectionProperty() async throws {
+        let (sut, _, _) = await makeSUT()
+        
+        #expect(sut.selection == nil)
+        
+        sut.selection = "test-id"
+        #expect(sut.selection == "test-id")
+        
+        sut.selection = "different-id"
+        #expect(sut.selection == "different-id")
+    }
+
+    @Test(.teardownTracking())
+    func canHandleSelection_returnsTrueWhenCallbackProvided() async throws {
+        let (sut, _, _) = await makeSUT(
+            onSelectionChange: { _ in
+                // Callback provided
+            }
+        )
+        
+        #expect(sut.canHandleSelection == true)
+    }
 }
 
 // MARK: - Test Helpers
