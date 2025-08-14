@@ -185,7 +185,7 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
         clock: configuration.clock
     )
 
-    private let queryBuilder: QueryBuilder<Query>
+    public var queryBuilder: QueryBuilder<Query>
     @ObservationIgnored
     private var cachedQuery: Query?
     @ObservationIgnored
