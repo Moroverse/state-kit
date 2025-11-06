@@ -24,6 +24,7 @@ public final class MainActorLastIDPaginator<Element, Query: Hashable> where Elem
 
     private let cache: MainActorLastIDPaginationCache<Element, Query>
     private let remoteLoader: RemoteLoader
+    private let asyncSubject: MainActorSubject<Paginated<Element>>
 
     /// Initializes a new paginator with a remote loader function.
     ///
@@ -31,6 +32,7 @@ public final class MainActorLastIDPaginator<Element, Query: Hashable> where Elem
     public init(remoteLoader: @escaping RemoteLoader) {
         cache = MainActorLastIDPaginationCache()
         self.remoteLoader = remoteLoader
+        self.asyncSubject = MainActorSubject()
     }
 
     /// Loads the initial page of elements for the given query.
@@ -56,20 +58,28 @@ public final class MainActorLastIDPaginator<Element, Query: Hashable> where Elem
     /// - Returns: A `Paginated` object containing the updated elements
     ///
     /// - Throws: Any error that might occur during the update process
+    
+    @discardableResult
     public func update(
         differenceBuilder: @MainActor (_ cache: [Element]) -> Difference<Element>
     ) async throws -> Paginated<Element> {
         let params = cache.updateCache(differenceBuilder: differenceBuilder)
         guard let params else { return Paginated(items: []) }
-        return makePage(
+        let result = makePage(
             query: params.key,
             lastCursor: params.lastCursor,
             items: params.elements
         )
+        asyncSubject.send(result)
+        return result
     }
 
     public func cachedElement(with id: Element.ID) -> Element? {
         cache.cachedElement(with: id)
+    }
+    
+    public func subcribe() -> AsyncStream<Paginated<Element>> {
+        return asyncSubject.stream()
     }
 
     private func makeRemoteLoadMoreLoader(
