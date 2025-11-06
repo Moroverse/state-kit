@@ -78,7 +78,7 @@ public final class MainActorLastIDPaginator<Element, Query: Hashable> where Elem
         cache.cachedElement(with: id)
     }
     
-    public func subcribe() -> AsyncStream<Paginated<Element>> {
+    public func subscribe() -> AsyncStream<Paginated<Element>> {
         return asyncSubject.stream()
     }
 
