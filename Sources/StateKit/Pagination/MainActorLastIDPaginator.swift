@@ -57,7 +57,7 @@ public final class MainActorLastIDPaginator<Element, Query: Hashable> where Elem
     ///
     /// - Throws: Any error that might occur during the update process
     public func update(
-        differenceBuilder: @Sendable (_ cache: [Element]) -> Difference<Element>
+        differenceBuilder: @MainActor (_ cache: [Element]) -> Difference<Element>
     ) async throws -> Paginated<Element> {
         let params = cache.updateCache(differenceBuilder: differenceBuilder)
         guard let params else { return Paginated(items: []) }
