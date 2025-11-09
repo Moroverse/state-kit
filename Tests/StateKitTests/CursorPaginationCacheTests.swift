@@ -8,11 +8,11 @@ import TestKit
 @testable import StateKit
 
 @Suite
-struct LastIDPaginationCacheTests {
+struct CursorPaginationCacheTests {
     // MARK: - SUT Creation
 
-    private func makeSUT() async -> LastIDPaginationCache<TestItem, TestKey> {
-        let sut = LastIDPaginationCache<TestItem, TestKey>()
+    private func makeSUT() async -> CursorPaginationCache<TestItem, TestKey, TestItem.ID> {
+        let sut = CursorPaginationCache<TestItem, TestKey, TestItem.ID>()
         await Test.trackForMemoryLeaks(sut)
         return sut
     }
