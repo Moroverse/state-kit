@@ -26,7 +26,7 @@ struct ListModelTests {
         let sut = ListModel(
             configuration: ListModelConfiguration(
                 emptyContentLabel: "No results",
-                emptyContentImageResource: "magnifyingglass",
+                emptyContentImageResource: .system("magnifyingglass"),
                 debounceDelay: .seconds(0.5),
                 clock: clock
             ),
@@ -55,7 +55,7 @@ struct ListModelTests {
         let sut = ListModel(
             configuration: ListModelConfiguration(
                 emptyContentLabel: "No results",
-                emptyContentImageResource: "magnifyingglass",
+                emptyContentImageResource: .system("magnifyingglass"),
                 debounceDelay: .seconds(0.5),
                 clock: clock
             ),
@@ -85,7 +85,7 @@ struct ListModelTests {
         let sut = ListModel(
             configuration: ListModelConfiguration(
                 emptyContentLabel: "No results",
-                emptyContentImageResource: "magnifyingglass",
+                emptyContentImageResource: .system("magnifyingglass"),
                 debounceDelay: .seconds(0.5),
                 clock: clock
             ),
@@ -107,7 +107,7 @@ struct ListModelTests {
     func init_setsEmptyStateAndNilErrorMessage() async throws {
         let (sut, _, _) = await makeSUT()
 
-        #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
+        #expect(sut.state == .empty(label: "No results", image: .system("magnifyingglass")))
     }
 
     @Test(.teardownTracking())
@@ -137,7 +137,7 @@ struct ListModelTests {
             } completeWith: {
                 .success([])
             } expectationAfterCompletion: { _ in
-                #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
+                #expect(sut.state == .empty(label: "No results", image: .system("magnifyingglass")))
             }
     }
 
@@ -210,7 +210,7 @@ struct ListModelTests {
             } completeWith: {
                 .success(expectedItems)
             } expectationAfterCompletion: { _ in
-                #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
+                #expect(sut.state == .empty(label: "No results", image: .system("magnifyingglass")))
             }
     }
 
@@ -529,7 +529,7 @@ struct ListModelTests {
         let sut = ListModel(
             configuration: ListModelConfiguration(
                 emptyContentLabel: "No results",
-                emptyContentImageResource: "magnifyingglass",
+                emptyContentImageResource: .system("magnifyingglass"),
                 debounceDelay: .seconds(0.5),
                 clock: clock
             ),

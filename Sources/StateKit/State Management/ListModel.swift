@@ -6,6 +6,11 @@ import DeveloperToolsSupport
 import Foundation
 import Observation
 
+public enum ImageSource: Equatable, Sendable {
+    case system(String)
+    case asset(ImageResource)
+}
+
 /**
  Represents the various states of an asynchronous list loading operation.
 
@@ -41,14 +46,16 @@ import Observation
  - Note: The generic `Model` type must conform to `RandomAccessCollection` to support efficient list operations.
  */
 public indirect enum ListLoadingState<Model> where Model: RandomAccessCollection {
+    
+    
     /// The initial empty state before any loading operation begins, or when no results are found.
     ///
     /// This state is used both for the initial state and when a search/load operation returns no results.
     ///
     /// - Parameters:
     ///   - label: A localized string resource describing the empty state (e.g., "No items found")
-    ///   - image: A system image name to display alongside the empty state message
-    case empty(label: LocalizedStringResource, image: String)
+    ///   - image: A  image source to display alongside the empty state message
+    case empty(label: LocalizedStringResource, image: ImageSource)
 
     /// The loading state when an asynchronous list loading operation is in progress.
     ///

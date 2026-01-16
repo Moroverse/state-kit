@@ -7,18 +7,18 @@ import Clocks
 
 public struct ListModelConfiguration: Sendable {
     public let emptyContentLabel: LocalizedStringResource
-    public let emptyContentImageResource: String
+    public let emptyContentImageResource: ImageSource
     public let debounceDelay: Duration
     public let clock: any Clock<Duration>
     
     public static let `default` = ListModelConfiguration(
         emptyContentLabel: "No results",
-        emptyContentImageResource: "magnifyingglass",
+        emptyContentImageResource: .system("magnifyingglass"),
         debounceDelay: .seconds(0.5),
         clock: ContinuousClock()
     )
     
-    public init(emptyContentLabel: LocalizedStringResource, emptyContentImageResource: String, debounceDelay: Duration, clock: any Clock<Duration>) {
+    public init(emptyContentLabel: LocalizedStringResource, emptyContentImageResource: ImageSource, debounceDelay: Duration, clock: any Clock<Duration>) {
         self.emptyContentLabel = emptyContentLabel
         self.emptyContentImageResource = emptyContentImageResource
         self.debounceDelay = debounceDelay

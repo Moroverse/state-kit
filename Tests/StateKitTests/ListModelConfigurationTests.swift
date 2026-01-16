@@ -20,7 +20,7 @@ struct ListModelConfigurationTests {
     func defaultConfiguration_hasEmptyContentImageResource() async throws {
         let config = ListModelConfiguration.default
         
-        #expect(config.emptyContentImageResource == "magnifyingglass")
+        #expect(config.emptyContentImageResource == .system("magnifyingglass"))
     }
     
     @Test
