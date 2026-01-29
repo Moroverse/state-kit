@@ -235,10 +235,15 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
 
      */
     public func load(forceReload: Bool = false) async {
-        await load(
-            query: queryBuilder(latestQueryString),
-            forceReload: forceReload
-        )
+        do {
+            let query = try queryBuilder(latestQueryString)
+            await load(
+                query: query,
+                forceReload: forceReload
+            )
+        } catch {
+            state = .error("\(error.localizedDescription)", previousState: state)
+        }
     }
 
     /**
@@ -374,8 +379,12 @@ open class ListModel<Model: RandomAccessCollection, Query: Sendable>
      */
     public func search(_ query: String) async {
         latestQueryString = query
-        let query = queryBuilder(latestQueryString)
-        await load(query: query)
+        do {
+            let query = try queryBuilder(latestQueryString)
+            await load(query: query)
+        } catch {
+            state = .error("\(error.localizedDescription)", previousState: state)
+        }
     }
 
     /**

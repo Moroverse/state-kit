@@ -7,7 +7,7 @@
 public typealias ModelLoader<Query, Model> = @Sendable (Query) async throws -> Model
 
 /// A closure type for building a query from a string.
-public typealias QueryBuilder<Query> = (String) -> Query
+public typealias QueryBuilder<Query> = (String) throws-> Query
 
 /// A closure type for providing a query.
 public typealias QueryProvider<Query> = () -> Query
