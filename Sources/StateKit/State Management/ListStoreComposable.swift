@@ -22,7 +22,7 @@ extension ListStore: ListStoreComposable {
 }
 
 extension SearchableListStore: ListStoreComposable {
-    var coreStore: ListStore<Model, Query, Failure> { listStore }
+    var coreStore: ListStore<Model, Query, Failure> { base }
 }
 
 extension PaginatedListStore: ListStoreComposable where Base: ListStoreComposable {
@@ -82,7 +82,7 @@ extension ListStore {
         loadingConfiguration: LoadingConfiguration = .default
     ) -> SearchableListStore<Model, Query, Failure> {
         SearchableListStore(
-            listStore: self,
+            base: self,
             queryBuilder: queryBuilder,
             loadingConfiguration: loadingConfiguration
         )

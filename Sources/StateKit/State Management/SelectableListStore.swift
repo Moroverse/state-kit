@@ -29,7 +29,7 @@ public final class SelectableListStore<Base: ListStateProviding>
     /// The underlying store being wrapped.
     public let base: Base
 
-    private var selectionManager: any SelectionManager<Base.Model.Element>
+    private var selectionManager: CallbackSelectionManager<Base.Model.Element>
 
     /// Initializes a selectable wrapper around a base store.
     ///

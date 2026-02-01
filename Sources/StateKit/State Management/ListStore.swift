@@ -91,7 +91,7 @@ public indirect enum ListLoadingState<Model, Failure: Error> where Model: Random
     /// - Parameters:
     ///   - collection: The successfully loaded collection of type `Model`
     ///   - loadMoreState: The current state of pagination, indicating whether more items can be loaded
-    case loaded(Model, loadMoreState: LoadMoreState<Model>)
+    case loaded(Model, loadMoreState: LoadMoreState)
 
     /// The error state when list loading fails.
     ///
@@ -104,7 +104,7 @@ public indirect enum ListLoadingState<Model, Failure: Error> where Model: Random
 extension ListLoadingState: Equatable where Model: Equatable, Failure: Equatable {}
 
 /// The state of pagination for a loaded collection.
-public enum LoadMoreState<Model> where Model: RandomAccessCollection {
+public enum LoadMoreState {
     /// Pagination is not available for this collection.
     case unavailable
 

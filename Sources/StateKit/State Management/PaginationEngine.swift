@@ -27,7 +27,7 @@ final class PaginationEngine<Model: RandomAccessCollection, Failure: Error>
     ///
     /// Returns `.ready` if the model is a `Paginated` type with a `loadMore` closure,
     /// otherwise returns `.unavailable`.
-    func loadMoreState(for model: Model) -> LoadMoreState<Model> {
+    func loadMoreState(for model: Model) -> LoadMoreState {
         if let paginated = model as? Paginated<Model.Element>,
            paginated.loadMore != nil {
             .ready

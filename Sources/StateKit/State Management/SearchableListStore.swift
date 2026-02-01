@@ -26,7 +26,7 @@ public final class SearchableListStore<Model: RandomAccessCollection, Query: Sen
     where Model: Sendable, Query: Sendable & Equatable, Model.Element: Identifiable, Model.Element: Sendable {
 
     /// The underlying list store that performs actual loading.
-    public let listStore: ListStore<Model, Query, Failure>
+    public let base: ListStore<Model, Query, Failure>
 
     @ObservationIgnored
     private var searchEngine: SearchEngine<Model, Query, Failure>
@@ -34,30 +34,30 @@ public final class SearchableListStore<Model: RandomAccessCollection, Query: Sen
     /// Initializes a searchable wrapper around a ``ListStore``.
     ///
     /// - Parameters:
-    ///   - listStore: The base list store to wrap.
+    ///   - base: The base list store to wrap.
     ///   - queryBuilder: A closure that builds a query from a search string.
     ///   - loadingConfiguration: Configuration for debounce delay and clock. Default is `.default`.
     public init(
-        listStore: ListStore<Model, Query, Failure>,
+        base: ListStore<Model, Query, Failure>,
         queryBuilder: @escaping QueryBuilder<Query>,
         loadingConfiguration: LoadingConfiguration = .default
     ) {
-        self.listStore = listStore
+        self.base = base
         self.searchEngine = SearchEngine(
             queryBuilder: queryBuilder,
             loadingConfiguration: loadingConfiguration
         )
 
-        self.searchEngine.loadModel = { [weak listStore] query, forceReload in
-            guard let listStore else { throw SearchEngine<Model, Query, Failure>.SearchEngineError.instanceDeallocated }
-            return try await listStore.loadModel(query: query, forceReload: forceReload)
+        self.searchEngine.loadModel = { [weak base] query, forceReload in
+            guard let base else { throw SearchEngine<Model, Query, Failure>.SearchEngineError.instanceDeallocated }
+            return try await base.loadModel(query: query, forceReload: forceReload)
         }
     }
 
     // MARK: - ListStateProviding
 
     public var state: ListLoadingState<Model, Failure> {
-        listStore.state
+        base.state
     }
 
     public func load(forceReload: Bool = false) async {
@@ -67,7 +67,7 @@ public final class SearchableListStore<Model: RandomAccessCollection, Query: Sen
         } catch is CancellationError {
         } catch {
             if let failure = error as? Failure {
-                listStore.state = .error(failure, previousState: listStore.state)
+                base.state = .error(failure, previousState: base.state)
             } else {
                 assertionFailure("Unhandled error type in SearchableListStore.load(): \(error)")
             }
@@ -75,7 +75,7 @@ public final class SearchableListStore<Model: RandomAccessCollection, Query: Sen
     }
 
     public func element(at index: Int) -> Model.Element? {
-        listStore.element(at: index)
+        base.element(at: index)
     }
 
     // MARK: - SearchableListProviding
@@ -93,7 +93,7 @@ public final class SearchableListStore<Model: RandomAccessCollection, Query: Sen
         } catch is CancellationError {
         } catch {
             if let failure = error as? Failure {
-                listStore.state = .error(failure, previousState: listStore.state)
+                base.state = .error(failure, previousState: base.state)
             } else {
                 assertionFailure("Unhandled error type in SearchableListStore.search(): \(error)")
             }
@@ -102,7 +102,7 @@ public final class SearchableListStore<Model: RandomAccessCollection, Query: Sen
 
     /// Cancels any ongoing search or load operations.
     public func cancelSearch() async {
-        if case let .inProgress(cancellable, _) = listStore.state {
+        if case let .inProgress(cancellable, _) = base.state {
             cancellable.cancel()
         }
     }
@@ -118,7 +118,7 @@ public final class SearchableListStore<Model: RandomAccessCollection, Query: Sen
 
     /// Cancels any in-progress loading operation.
     public func cancel() {
-        listStore.cancel()
+        base.cancel()
     }
 }
 
