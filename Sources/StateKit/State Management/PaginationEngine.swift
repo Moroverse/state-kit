@@ -106,8 +106,7 @@ final class PaginationEngine<Model: RandomAccessCollection, Failure: Error>
             setState(.loaded(model, loadMoreState: loadMoreState(for: model)))
         } catch {
             loadMoreTask = nil
-            setState(.empty(label: emptyStateConfiguration.label, image: emptyStateConfiguration.image))
-            invalidateCache()
+            setState(.loaded(model, loadMoreState: .ready))
             throw error
         }
     }

@@ -161,9 +161,13 @@ public class DetailStore<Model, Query, Failure: Error> where Model: Sendable, Qu
             }
             state = .loaded(model)
             return model
+        } catch let error as CancellationError {
+            currentTask = nil
+            state = oldState
+            throw error
         } catch {
             currentTask = nil
-            state = .empty(label: emptyStateConfiguration.label, image: emptyStateConfiguration.image)
+            state = oldState
             cachedQuery = nil
             throw error
         }
