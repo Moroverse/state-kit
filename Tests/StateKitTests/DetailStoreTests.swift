@@ -1,4 +1,4 @@
-// DetailModelTests.swift
+// DetailStoreTests.swift
 // Copyright (c) 2025 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
@@ -9,11 +9,11 @@ import TestKit
 
 @MainActor
 @Suite
-struct DetailModelTests {
+struct DetailStoreTests {
     // MARK: - SUT Creation
 
     private func makeSUT() async -> (
-        sut: DetailModel<TestModel, TestQuery>,
+        sut: DetailStore<TestModel, TestQuery, any Error>,
         loader: AsyncSpy<TestModel>,
         queryProvider: QueryProviderStub
     ) {
@@ -21,7 +21,7 @@ struct DetailModelTests {
 
         let queryProvider = QueryProviderStub()
 
-        let sut = DetailModel(loader: loader.load, queryProvider: queryProvider.provide)
+        let sut: DetailStore<TestModel, TestQuery, any Error> = DetailStore(loader: loader.load, queryProvider: queryProvider.provide)
         await Test.trackForMemoryLeaks(sut)
         await Test.trackForMemoryLeaks(loader)
         await Test.trackForMemoryLeaks(queryProvider)
@@ -32,9 +32,12 @@ struct DetailModelTests {
     // MARK: - Test Cases
 
     @Test(.teardownTracking())
-    func init_setsEmptyStateAndNilError() async throws {
+    func init_setsIdleState() async throws {
         let (sut, _, _) = await makeSUT()
-        #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
+        guard case .idle = sut.state else {
+            Issue.record("Expected .idle state, got \(sut.state)")
+            return
+        }
     }
 
     @Test(.teardownTracking())
@@ -49,12 +52,16 @@ struct DetailModelTests {
             } completeWith: {
                 .success(expectedModel)
             } expectationAfterCompletion: { _ in
-                #expect(sut.state == .loaded(expectedModel))
+                guard case let .loaded(model) = sut.state else {
+                    Issue.record("Expected .loaded state, got \(sut.state)")
+                    return
+                }
+                #expect(model == expectedModel)
             }
     }
 
     @Test(.teardownTracking())
-    func load_setsEmptyStateAndErrorOnErrorResponse() async throws {
+    func load_setsErrorStateOnErrorResponse() async throws {
         let expectedError = NSError(domain: "TestError", code: 0, userInfo: nil)
         let (sut, loader, queryProvider) = await makeSUT()
         queryProvider.queries = [TestQuery(id: "1")]
@@ -64,7 +71,15 @@ struct DetailModelTests {
         } completeWith: {
             .failure(expectedError)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .error("\(expectedError.localizedDescription)", previousState: .empty(label: "No results", image: "magnifyingglass")))
+            guard case let .error(failure, previousState: previousState) = sut.state else {
+                Issue.record("Expected .error state, got \(sut.state)")
+                return
+            }
+            #expect((failure as NSError) == expectedError)
+            guard case .idle = previousState else {
+                Issue.record("Expected .idle previousState, got \(previousState)")
+                return
+            }
         }
     }
 
@@ -81,14 +96,22 @@ struct DetailModelTests {
         } completeWith: {
             .success(model1)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .loaded(model1))
+            guard case let .loaded(model) = sut.state else {
+                Issue.record("Expected .loaded state, got \(sut.state)")
+                return
+            }
+            #expect(model == model1)
         }
 
         // Second load with same query (should use cache)
         try await loader.async {
             await sut.load()
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .loaded(model1))
+            guard case let .loaded(model) = sut.state else {
+                Issue.record("Expected .loaded state, got \(sut.state)")
+                return
+            }
+            #expect(model == model1)
             #expect(loader.performCallCount == 1)
         }
 
@@ -99,13 +122,17 @@ struct DetailModelTests {
             .success(model2)
         }
         expectationAfterCompletion: {
-            #expect(sut.state == .loaded(model2))
+            guard case let .loaded(model) = sut.state else {
+                Issue.record("Expected .loaded state, got \(sut.state)")
+                return
+            }
+            #expect(model == model2)
             #expect(loader.performCallCount == 2)
         }
     }
 
     @Test(.teardownTracking())
-    func cancel_maintainsEmptyStateOnCancelledLoad() async throws {
+    func cancel_maintainsIdleStateOnCancelledLoad() async throws {
         let anyModel = TestModel(id: "1", name: "Test")
         let (sut, loader, queryProvider) = await makeSUT()
         queryProvider.queries = [TestQuery(id: "1")]
@@ -116,7 +143,10 @@ struct DetailModelTests {
             sut.cancel()
             return .success(anyModel)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .empty(label: "No results", image: "magnifyingglass"))
+            guard case .idle = sut.state else {
+                Issue.record("Expected .idle state, got \(sut.state)")
+                return
+            }
         }
     }
 }

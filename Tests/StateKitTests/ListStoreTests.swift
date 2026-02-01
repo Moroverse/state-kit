@@ -1,4 +1,4 @@
-// ListModelTests.swift
+// ListStoreTests.swift
 // Copyright (c) 2025 Moroverse
 // Created by Daniel Moro on 2025-04-07 08:57 GMT.
 
@@ -11,11 +11,11 @@ import TestKit
 
 @MainActor
 @Suite
-struct ListModelTests {
+struct ListStoreTests {
     // MARK: - SUT Creation
 
     private func makeSUTPaginated() async -> (
-        sut: ListModel<Paginated<TestListItem>, TestQuery>,
+        sut: ListStore<Paginated<TestListItem>, TestQuery, any Error>,
         loader: AsyncSpy<Paginated<TestListItem>>,
         queryBuilder: QueryBuilderStub
     ) {
@@ -23,12 +23,14 @@ struct ListModelTests {
         let queryBuilder = QueryBuilderStub()
         let clock = ImmediateClock()
 
-        let sut = ListModel(
-            configuration: ListModelConfiguration(
-                emptyContentLabel: "No results",
-                emptyContentImageResource: .system("magnifyingglass"),
+        let sut: ListStore<Paginated<TestListItem>, TestQuery, any Error> = ListStore(
+            loadingConfiguration: LoadingConfiguration(
                 debounceDelay: .seconds(0.5),
                 clock: clock
+            ),
+            emptyStateConfiguration: EmptyStateConfiguration(
+                label: "No results",
+                image: .system("magnifyingglass")
             ),
             loader: loader.load,
             queryBuilder: queryBuilder.build
@@ -43,7 +45,7 @@ struct ListModelTests {
 
     // swiftlint:disable:next large_tuple
     private func makeSUTSearch() async -> (
-        sut: ListModel<[TestListItem], TestQuery>,
+        sut: ListStore<[TestListItem], TestQuery, any Error>,
         loader: AsyncSpy<[TestListItem]>,
         queryBuilder: QueryBuilderStub,
         clock: TestClock<Duration>
@@ -52,12 +54,14 @@ struct ListModelTests {
         let queryBuilder = QueryBuilderStub()
         let clock = TestClock()
 
-        let sut = ListModel(
-            configuration: ListModelConfiguration(
-                emptyContentLabel: "No results",
-                emptyContentImageResource: .system("magnifyingglass"),
+        let sut: ListStore<[TestListItem], TestQuery, any Error> = ListStore(
+            loadingConfiguration: LoadingConfiguration(
                 debounceDelay: .seconds(0.5),
                 clock: clock
+            ),
+            emptyStateConfiguration: EmptyStateConfiguration(
+                label: "No results",
+                image: .system("magnifyingglass")
             ),
             loader: loader.load,
             queryBuilder: queryBuilder.build
@@ -74,7 +78,7 @@ struct ListModelTests {
     private func makeSUT(
         onSelectionChange: ((TestListItem?) -> Void)? = nil
     ) async -> (
-        sut: ListModel<[TestListItem], TestQuery>,
+        sut: ListStore<[TestListItem], TestQuery, any Error>,
         loader: AsyncSpy<[TestListItem]>,
         queryBuilder: QueryBuilderStub
     ) {
@@ -82,12 +86,14 @@ struct ListModelTests {
         let queryBuilder = QueryBuilderStub()
         let clock = ImmediateClock()
 
-        let sut = ListModel(
-            configuration: ListModelConfiguration(
-                emptyContentLabel: "No results",
-                emptyContentImageResource: .system("magnifyingglass"),
+        let sut: ListStore<[TestListItem], TestQuery, any Error> = ListStore(
+            loadingConfiguration: LoadingConfiguration(
                 debounceDelay: .seconds(0.5),
                 clock: clock
+            ),
+            emptyStateConfiguration: EmptyStateConfiguration(
+                label: "No results",
+                image: .system("magnifyingglass")
             ),
             loader: loader.load,
             queryBuilder: queryBuilder.build,
@@ -104,10 +110,13 @@ struct ListModelTests {
     // MARK: - Test Cases
 
     @Test(.teardownTracking())
-    func init_setsEmptyStateAndNilErrorMessage() async throws {
+    func init_setsIdleState() async throws {
         let (sut, _, _) = await makeSUT()
 
-        #expect(sut.state == .empty(label: "No results", image: .system("magnifyingglass")))
+        guard case .idle = sut.state else {
+            Issue.record("Expected .idle state, got \(sut.state)")
+            return
+        }
     }
 
     @Test(.teardownTracking())
@@ -122,7 +131,12 @@ struct ListModelTests {
             } completeWith: {
                 .success(expectedItems)
             } expectationAfterCompletion: { _ in
-                #expect(sut.state == .loaded(expectedItems, loadMoreState: .unavailable))
+                guard case let .loaded(items, loadMoreState) = sut.state else {
+                    Issue.record("Expected .loaded state")
+                    return
+                }
+                #expect(items == expectedItems)
+                #expect(loadMoreState == .unavailable)
             }
     }
 
@@ -137,12 +151,17 @@ struct ListModelTests {
             } completeWith: {
                 .success([])
             } expectationAfterCompletion: { _ in
-                #expect(sut.state == .empty(label: "No results", image: .system("magnifyingglass")))
+                guard case let .empty(label, image) = sut.state else {
+                    Issue.record("Expected .empty state, got \(sut.state)")
+                    return
+                }
+                #expect(label.key == "No results")
+                #expect(image == .system("magnifyingglass"))
             }
     }
 
     @Test(.teardownTracking())
-    func load_setsErrorMessageOnErrorResponse() async throws {
+    func load_setsErrorStateOnErrorResponse() async throws {
         let expectedError = NSError(domain: "TestError", code: 0, userInfo: nil)
         let (sut, loader, queryBuilder) = await makeSUT()
         queryBuilder.queries = [TestQuery(term: "test")]
@@ -153,9 +172,10 @@ struct ListModelTests {
             } completeWith: {
                 .failure(expectedError)
             } expectationAfterCompletion: { _ in
-                #expect({
-                    if case .error = sut.state { true } else { false }
-                }())
+                guard case .error = sut.state else {
+                    Issue.record("Expected .error state")
+                    return
+                }
             }
     }
 
@@ -174,14 +194,22 @@ struct ListModelTests {
         } completeWith: {
             .success(items1)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .loaded(items1, loadMoreState: .unavailable))
+            guard case let .loaded(items, _) = sut.state else {
+                Issue.record("Expected .loaded state")
+                return
+            }
+            #expect(items == items1)
         }
 
         // Second load with same query (should use cache)
         try await loader.async(yieldCount: 2) {
             await sut.load()
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .loaded(items1, loadMoreState: .unavailable))
+            guard case let .loaded(items, _) = sut.state else {
+                Issue.record("Expected .loaded state")
+                return
+            }
+            #expect(items == items1)
             #expect(loader.performCallCount == 1)
         }
 
@@ -191,7 +219,11 @@ struct ListModelTests {
         } completeWith: {
             .success(items2)
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .loaded(items2, loadMoreState: .unavailable))
+            guard case let .loaded(items, _) = sut.state else {
+                Issue.record("Expected .loaded state")
+                return
+            }
+            #expect(items == items2)
             #expect(loader.performCallCount == 2)
         }
     }
@@ -210,7 +242,10 @@ struct ListModelTests {
             } completeWith: {
                 .success(expectedItems)
             } expectationAfterCompletion: { _ in
-                #expect(sut.state == .empty(label: "No results", image: .system("magnifyingglass")))
+                guard case .idle = sut.state else {
+                    Issue.record("Expected .idle state after cancel, got \(sut.state)")
+                    return
+                }
             }
     }
 
@@ -244,7 +279,11 @@ struct ListModelTests {
                 .success(expectedItems)
             },
             expectationAfterCompletion: { _ in
-                #expect(sut.state == .loaded(expectedItems, loadMoreState: .unavailable))
+                guard case let .loaded(items, _) = sut.state else {
+                    Issue.record("Expected .loaded state")
+                    return
+                }
+                #expect(items == expectedItems)
                 #expect(queryBuilder.buildCallCount == 3)
                 #expect(loader.performCallCount == 1)
             }
@@ -290,12 +329,22 @@ struct ListModelTests {
                 Paginated(items: nextPageItems)
             })
         } expectationAfterCompletion: { _ in
-            #expect(sut.state == .loaded(Paginated(items: initialItems) { Paginated(items: nextPageItems) }, loadMoreState: .ready))
+            guard case let .loaded(model, loadMoreState) = sut.state else {
+                Issue.record("Expected .loaded state")
+                return
+            }
+            #expect(model == Paginated(items: initialItems) { Paginated(items: nextPageItems) })
+            #expect(loadMoreState == .ready)
         }
 
         // Test loading more
         try await sut.loadMore()
-        #expect(sut.state == .loaded(Paginated(items: nextPageItems), loadMoreState: .unavailable))
+        guard case let .loaded(model, loadMoreState) = sut.state else {
+            Issue.record("Expected .loaded state after loadMore")
+            return
+        }
+        #expect(model == Paginated(items: nextPageItems))
+        #expect(loadMoreState == .unavailable)
     }
 
     @Test(.teardownTracking())
@@ -364,7 +413,7 @@ struct ListModelTests {
             }
         )
 
-        // State is .empty, not .loaded
+        // State is .idle, not .loaded
         sut.selection = "1"
         #expect(callbackTriggered == false)
         #expect(selectedItem == nil)
@@ -373,12 +422,12 @@ struct ListModelTests {
     @Test(.teardownTracking())
     func selection_setsSelectionProperty() async throws {
         let (sut, _, _) = await makeSUT()
-        
+
         #expect(sut.selection == nil)
-        
+
         sut.selection = "test-id"
         #expect(sut.selection == "test-id")
-        
+
         sut.selection = "different-id"
         #expect(sut.selection == "different-id")
     }
@@ -390,7 +439,7 @@ struct ListModelTests {
                 // Callback provided
             }
         )
-        
+
         #expect(sut.canHandleSelection == true)
     }
 
@@ -399,7 +448,7 @@ struct ListModelTests {
         let (sut, _, _) = await makeSUT(
             onSelectionChange: nil // No callback provided
         )
-        
+
         #expect(sut.canHandleSelection == false)
     }
 
@@ -457,7 +506,7 @@ struct ListModelTests {
 
         // Multiple rapid selection changes
         sut.selection = "1"
-        sut.selection = "2" 
+        sut.selection = "2"
         sut.selection = "3"
         sut.selection = "1"
 
@@ -475,7 +524,7 @@ struct ListModelTests {
             TestListItem(id: "1", name: "Item 1"),
             TestListItem(id: "2", name: "Item 2")
         ]
-        
+
         let updatedItems = [
             TestListItem(id: "1", name: "Updated Item 1"),
             TestListItem(id: "3", name: "Item 3")
@@ -526,12 +575,14 @@ struct ListModelTests {
         let queryBuilder = QueryBuilderStub()
         let clock = ImmediateClock()
 
-        let sut = ListModel(
-            configuration: ListModelConfiguration(
-                emptyContentLabel: "No results",
-                emptyContentImageResource: .system("magnifyingglass"),
+        let sut: ListStore<Paginated<TestListItem>, TestQuery, any Error> = ListStore(
+            loadingConfiguration: LoadingConfiguration(
                 debounceDelay: .seconds(0.5),
                 clock: clock
+            ),
+            emptyStateConfiguration: EmptyStateConfiguration(
+                label: "No results",
+                image: .system("magnifyingglass")
             ),
             loader: loader.load,
             queryBuilder: queryBuilder.build,
@@ -557,7 +608,7 @@ struct ListModelTests {
 
         // Load more data
         try await sut.loadMore()
-        
+
         // Select item that exists in paginated results
         sut.selection = "2"
         #expect(selectedItem?.name == "Item 2")

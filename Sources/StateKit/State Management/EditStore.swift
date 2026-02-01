@@ -1,4 +1,4 @@
-// EditModel.swift
+// EditStore.swift
 // Copyright (c) 2025 Moroverse
 // Created by Daniel Moro on 2024-08-07 18:45 GMT.
 
@@ -15,29 +15,12 @@ import Observation
 ///   - Model: The type of model managed by the repository.
 public struct RepositoryService<Query, Model> {
     /// A closure that updates an existing model in the repository.
-    ///
-    /// - Parameter model: The model to be updated. This should be a complete model object,
-    ///                    not just the fields that have changed.
-    /// - Throws: An error if the update operation fails. This could include network errors,
-    ///           validation errors, or database errors depending on the implementation.
-    /// - Note: This operation may have side effects such as persisting data or making network requests.
     public var update: (@Sendable (Model) async throws -> Void)?
 
     /// A closure that fetches a model from the repository based on a query.
-    ///
-    /// - Parameter query: The query used to fetch the model. The exact structure of the query
-    ///                    depends on the specific implementation.
-    /// - Returns: The fetched model.
-    /// - Throws: An error if the fetch operation fails. This could include network errors,
-    ///           or cases where the requested model is not found.
-    /// - Note: This operation should not have side effects other than potentially caching results.
     public var fetch: (@Sendable (Query) async throws -> Model)?
 
     /// Initializes a new instance of `RepositoryService`.
-    ///
-    /// - Parameters:
-    ///   - update: An optional closure for updating an existing model.
-    ///   - fetch: An optional closure for fetching a model based on a query.
     public init(
         update: (@Sendable (Model) async throws -> Void)? = nil,
         fetch: (@Sendable (Query) async throws -> Model)? = nil
@@ -56,21 +39,17 @@ public struct ServiceError: Identifiable {
     public let error: Error
 }
 
-/// A class that manages the state and operations of a repository model.
+/// A store that manages the state and operations of a repository model.
 ///
-/// This class provides functionality for creating, updating, fetching, and managing
+/// This class provides functionality for updating, fetching, and managing
 /// the state of a model in a repository.
-///
-/// - Parameters:
-///   - Model: The type of model managed by this repository.
-///   - Query: The type used for querying the repository.
 @MainActor
 @Observable
-public class EditModel<Model, Query> where Model: Sendable, Query: Sendable {
+public class EditStore<Model, Query> where Model: Sendable, Query: Sendable {
     /// Represents the current operation being performed on the repository.
     public enum Operation {
-        case fetching(Task<Model, Error>)
-        case updating(Task<Void, Error>)
+        case fetching(Cancellable)
+        case updating(Cancellable)
     }
 
     /// Represents the current content state of the repository model.
@@ -127,8 +106,12 @@ public class EditModel<Model, Query> where Model: Sendable, Query: Sendable {
 
     private let service: RepositoryService<Query, Model>
     private let queryProvider: QueryProvider<Query>
+    @ObservationIgnored
+    private var fetchTask: Task<Model, Error>?
+    @ObservationIgnored
+    private var updateTask: Task<Void, Error>?
 
-    /// Initializes a new instance of `EditModel`.
+    /// Initializes a new instance of `EditStore`.
     ///
     /// - Parameters:
     ///   - service: The repository service to use for operations.
@@ -142,7 +125,6 @@ public class EditModel<Model, Query> where Model: Sendable, Query: Sendable {
     }
 
     /// Updates the existing model in the repository.
-    /// Use this method when you have modifications to an existing model.
     ///
     /// - Parameter model: The updated model.
     public func changeModel(_ model: Model) {
@@ -163,18 +145,23 @@ public class EditModel<Model, Query> where Model: Sendable, Query: Sendable {
             return model
         }
 
-        currentOperation = .fetching(task)
+        fetchTask = task
+        let cancellable = Cancellable { task.cancel() }
+        currentOperation = .fetching(cancellable)
 
         do {
             let model = try await task.value
+            fetchTask = nil
             if Task.isCancelled {
                 content = oldContent
             } else {
                 content = .fetched(model)
             }
         } catch is CancellationError {
+            fetchTask = nil
             content = oldContent
         } catch {
+            fetchTask = nil
             serviceError = ServiceError(error: error)
         }
     }
@@ -193,29 +180,34 @@ public class EditModel<Model, Query> where Model: Sendable, Query: Sendable {
             try Task.checkCancellation()
         }
 
-        currentOperation = .updating(task)
+        updateTask = task
+        let cancellable = Cancellable { task.cancel() }
+        currentOperation = .updating(cancellable)
 
         do {
             try await task.value
+            updateTask = nil
             if Task.isCancelled {
                 content = oldContent
             } else {
                 content = .updated(model)
             }
         } catch is CancellationError {
+            updateTask = nil
             content = oldContent
         } catch {
+            updateTask = nil
             serviceError = ServiceError(error: error)
         }
     }
 
     public func cancel() {
         switch currentOperation {
-        case let .fetching(task):
-            task.cancel()
+        case let .fetching(cancellable):
+            cancellable.cancel()
 
-        case let .updating(task):
-            task.cancel()
+        case let .updating(cancellable):
+            cancellable.cancel()
 
         case .none:
             break

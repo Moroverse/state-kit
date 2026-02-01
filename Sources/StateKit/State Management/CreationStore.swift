@@ -1,4 +1,4 @@
-// CreationModel.swift
+// CreationStore.swift
 // Copyright (c) 2025 Moroverse
 // Created by Daniel Moro on 2024-08-07 18:45 GMT.
 
@@ -7,12 +7,14 @@ import Observation
 
 @MainActor
 @Observable
-public class CreationModel<CreationInfo> where CreationInfo: Sendable {
+public class CreationStore<CreationInfo> where CreationInfo: Sendable {
     public var serviceError: ServiceError?
-    public var currentOperation: Task<Void, Error>?
+    public var currentOperation: Cancellable?
     public var creationInfo: CreationInfo
 
     private let service: ((CreationInfo) async throws -> Void)?
+    @ObservationIgnored
+    private var currentTask: Task<Void, Error>?
 
     public init(
         creationInfo: CreationInfo,
@@ -32,20 +34,23 @@ public class CreationModel<CreationInfo> where CreationInfo: Sendable {
             try Task.checkCancellation()
         }
 
-        currentOperation = task
+        currentTask = task
+        currentOperation = Cancellable { task.cancel() }
 
         do {
             try await task.value
+            currentTask = nil
         } catch is CancellationError {
+            currentTask = nil
         } catch {
+            currentTask = nil
             serviceError = ServiceError(error: error)
         }
     }
 
     public func cancel() {
-        if let task = currentOperation {
-            task.cancel()
-            currentOperation = nil
-        }
+        currentOperation?.cancel()
+        currentOperation = nil
+        currentTask = nil
     }
 }
