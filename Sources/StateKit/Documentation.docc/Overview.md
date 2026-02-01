@@ -11,7 +11,9 @@ Collection of common foundation objects for managing state change and loading of
 ### State Management
 
 - ``StateKit/ListStore``
-- ``StateKit/BasicListStore``
+- ``StateKit/SearchableListStore``
+- ``StateKit/PaginatedListStore``
+- ``StateKit/SelectableListStore``
 - ``StateKit/DetailStore``
 
 ### Pagination

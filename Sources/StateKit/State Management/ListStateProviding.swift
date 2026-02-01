@@ -10,7 +10,7 @@ import Foundation
 /// enabling ViewModels to provide list state without requiring pagination,
 /// search, or selection capabilities.
 ///
-/// Both ``BasicListStore`` and ``ListStore`` conform to this protocol.
+/// ``ListStore`` conforms to this protocol regardless of initialization mode.
 ///
 /// ### Usage Example:
 ///
@@ -44,7 +44,7 @@ public protocol ListStateProviding<Model, Failure>: AnyObject, Observable {
 ///
 /// Extends ``ListStateProviding`` directly — pagination is orthogonal to search and selection.
 /// Combine with other protocols as needed: `PaginatedListProviding & SearchableListProviding`.
-/// ``ListStore`` conforms to this protocol; ``BasicListStore`` does not.
+/// ``ListStore`` conforms to this protocol. When initialized without pagination, `loadMore()` is a no-op.
 @MainActor
 public protocol PaginatedListProviding: ListStateProviding {
     func loadMore() async throws
@@ -74,6 +74,3 @@ public protocol SelectableListProviding: ListStateProviding {
 // MARK: - ListStore Conformances
 
 extension ListStore: ListStateProviding {}
-extension ListStore: PaginatedListProviding {}
-extension ListStore: SearchableListProviding {}
-extension ListStore: SelectableListProviding {}

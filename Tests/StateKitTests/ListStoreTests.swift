@@ -15,7 +15,7 @@ struct ListStoreTests {
     // MARK: - SUT Creation
 
     private func makeSUTPaginated() async -> (
-        sut: ListStore<Paginated<TestListItem>, TestQuery, any Error>,
+        sut: PaginatedListStore<SearchableListStore<Paginated<TestListItem>, TestQuery, any Error>>,
         loader: AsyncSpy<Paginated<TestListItem>>,
         queryBuilder: QueryBuilderStub
     ) {
@@ -23,18 +23,24 @@ struct ListStoreTests {
         let queryBuilder = QueryBuilderStub()
         let clock = ImmediateClock()
 
-        let sut: ListStore<Paginated<TestListItem>, TestQuery, any Error> = ListStore(
-            loadingConfiguration: LoadingConfiguration(
-                debounceDelay: .seconds(0.5),
-                clock: clock
-            ),
+        let listStore: ListStore<Paginated<TestListItem>, TestQuery, any Error> = ListStore(
             emptyStateConfiguration: EmptyStateConfiguration(
                 label: "No results",
                 image: .system("magnifyingglass")
             ),
             loader: loader.load,
-            queryBuilder: queryBuilder.build
+            queryFactory: { queryBuilder.build("") }
         )
+
+        let sut = listStore
+            .searchable(
+                queryBuilder: queryBuilder.build,
+                loadingConfiguration: LoadingConfiguration(
+                    debounceDelay: .seconds(0.5),
+                    clock: clock
+                )
+            )
+            .paginated()
 
         await Test.trackForMemoryLeaks(sut)
         await Test.trackForMemoryLeaks(loader)
@@ -45,7 +51,7 @@ struct ListStoreTests {
 
     // swiftlint:disable:next large_tuple
     private func makeSUTSearch() async -> (
-        sut: ListStore<[TestListItem], TestQuery, any Error>,
+        sut: SearchableListStore<[TestListItem], TestQuery, any Error>,
         loader: AsyncSpy<[TestListItem]>,
         queryBuilder: QueryBuilderStub,
         clock: TestClock<Duration>
@@ -54,17 +60,21 @@ struct ListStoreTests {
         let queryBuilder = QueryBuilderStub()
         let clock = TestClock()
 
-        let sut: ListStore<[TestListItem], TestQuery, any Error> = ListStore(
-            loadingConfiguration: LoadingConfiguration(
-                debounceDelay: .seconds(0.5),
-                clock: clock
-            ),
+        let listStore: ListStore<[TestListItem], TestQuery, any Error> = ListStore(
             emptyStateConfiguration: EmptyStateConfiguration(
                 label: "No results",
                 image: .system("magnifyingglass")
             ),
             loader: loader.load,
-            queryBuilder: queryBuilder.build
+            queryFactory: { queryBuilder.build("") }
+        )
+
+        let sut = listStore.searchable(
+            queryBuilder: queryBuilder.build,
+            loadingConfiguration: LoadingConfiguration(
+                debounceDelay: .seconds(0.5),
+                clock: clock
+            )
         )
 
         await Test.trackForMemoryLeaks(sut)
@@ -75,10 +85,11 @@ struct ListStoreTests {
     }
 
     // Helper method for tests with selection callback
+    // swiftlint:disable:next large_tuple
     private func makeSUT(
         onSelectionChange: ((TestListItem?) -> Void)? = nil
     ) async -> (
-        sut: ListStore<[TestListItem], TestQuery, any Error>,
+        sut: SelectableListStore<SearchableListStore<[TestListItem], TestQuery, any Error>>,
         loader: AsyncSpy<[TestListItem]>,
         queryBuilder: QueryBuilderStub
     ) {
@@ -86,19 +97,24 @@ struct ListStoreTests {
         let queryBuilder = QueryBuilderStub()
         let clock = ImmediateClock()
 
-        let sut: ListStore<[TestListItem], TestQuery, any Error> = ListStore(
-            loadingConfiguration: LoadingConfiguration(
-                debounceDelay: .seconds(0.5),
-                clock: clock
-            ),
+        let listStore: ListStore<[TestListItem], TestQuery, any Error> = ListStore(
             emptyStateConfiguration: EmptyStateConfiguration(
                 label: "No results",
                 image: .system("magnifyingglass")
             ),
             loader: loader.load,
-            queryBuilder: queryBuilder.build,
-            onSelectionChange: onSelectionChange
+            queryFactory: { queryBuilder.build("") }
         )
+
+        let sut = listStore
+            .searchable(
+                queryBuilder: queryBuilder.build,
+                loadingConfiguration: LoadingConfiguration(
+                    debounceDelay: .seconds(0.5),
+                    clock: clock
+                )
+            )
+            .selectable(onSelectionChange: onSelectionChange)
 
         await Test.trackForMemoryLeaks(sut)
         await Test.trackForMemoryLeaks(loader)
@@ -575,21 +591,29 @@ struct ListStoreTests {
         let queryBuilder = QueryBuilderStub()
         let clock = ImmediateClock()
 
-        let sut: ListStore<Paginated<TestListItem>, TestQuery, any Error> = ListStore(
-            loadingConfiguration: LoadingConfiguration(
-                debounceDelay: .seconds(0.5),
-                clock: clock
-            ),
+        let listStore: ListStore<Paginated<TestListItem>, TestQuery, any Error> = ListStore(
             emptyStateConfiguration: EmptyStateConfiguration(
                 label: "No results",
                 image: .system("magnifyingglass")
             ),
             loader: loader.load,
-            queryBuilder: queryBuilder.build,
-            onSelectionChange: { selected in
-                selectedItem = selected
-            }
+            queryFactory: { queryBuilder.build("") }
         )
+
+        let sut = listStore
+            .searchable(
+                queryBuilder: queryBuilder.build,
+                loadingConfiguration: LoadingConfiguration(
+                    debounceDelay: .seconds(0.5),
+                    clock: clock
+                )
+            )
+            .paginated()
+            .selectable(
+                onSelectionChange: { selected in
+                    selectedItem = selected
+                }
+            )
 
         queryBuilder.queries = [TestQuery(term: "test")]
 

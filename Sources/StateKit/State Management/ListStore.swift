@@ -118,29 +118,34 @@ public enum LoadMoreState<Model> where Model: RandomAccessCollection {
 extension LoadMoreState: Equatable {}
 
 /**
- A full-featured store for managing asynchronous loading, debounced search, pagination,
- and optional selection for a collection of items.
+ The base store for managing asynchronous loading of a collection of items.
 
- `ListStore` conforms to `PaginatedListProviding`, `SearchableListProviding`, and
- `SelectableListProviding`. For a simpler store without search, pagination, or selection,
- see ``BasicListStore``.
+ `ListStore` handles core loading, caching, and cancellation. Additional capabilities
+ (search, pagination, selection) are added by wrapping with decorator types.
+
+ ### Composition via Fluent API:
+
+ ```swift
+ // Simple list:
+ let store = ListStore(loader: api.fetch, queryFactory: { .default })
+
+ // Searchable + paginated:
+ let store = ListStore(loader: api.fetch, queryFactory: { .default })
+     .searchable(queryBuilder: { term in Query(term: term) })
+     .paginated()
+
+ // Full-featured:
+ let store = ListStore(loader: api.fetch, queryFactory: { .default })
+     .searchable(queryBuilder: { term in Query(term: term) })
+     .paginated()
+     .selectable(onSelectionChange: { item in handle(item) })
+ ```
 
  ### Type Parameters:
 
  - `Model`: A `RandomAccessCollection` of `Identifiable` & `Sendable` elements
  - `Query`: A `Sendable` & `Equatable` type representing the query
  - `Failure`: An `Error` type representing the kind of errors that can occur
-
- ### Usage Example:
-
- ```swift
- let store = ListStore<[MyItem], MyQuery, MyError>(
-     loader: myLoader,
-     queryBuilder: myQueryBuilder
- )
-
- await store.load()
- ```
 
  - Note: This class is `@MainActor` and should be used from the main thread.
  */
@@ -151,151 +156,61 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
 
     public var state: ListLoadingState<Model, Failure>
 
-    // MARK: - Selection
-
-    public var selection: Model.Element.ID? {
-        selectionManager.selectedID
-    }
-
-    /// Selects the element with the given ID.
-    ///
-    /// If the store is in a `.loaded` state, this also triggers the selection callback
-    /// (if one was provided at initialization).
-    ///
-    /// - Parameter id: The ID of the element to select, or `nil` to clear the selection.
-    public func select(_ id: Model.Element.ID?) {
-        selectionManager.selectedID = id
-
-        if case let .loaded(model, _) = state {
-            selectionManager.handleSelection(from: model)
-        }
-    }
-
-    public var canHandleSelection: Bool {
-        selectionManager.canHandleSelection
-    }
-
     // MARK: - Engines
 
     @ObservationIgnored
-    private var loadingEngine: LoadingEngine<Model, Query, Failure>
+    var loadingEngine: LoadingEngine<Model, Query, Failure>
+
+    // MARK: - Query Factory
 
     @ObservationIgnored
-    private var paginationEngine: PaginationEngine<Model, Failure>
-
-    @ObservationIgnored
-    private var searchEngine: SearchEngine<Model, Query, Failure>
-
-    // MARK: - Selection
-
-    private var selectionManager: any SelectionManager<Model.Element>
+    private let queryFactory: QueryProvider<Query>
 
     // MARK: - Configuration
 
     @ObservationIgnored
-    private let emptyStateConfiguration: EmptyStateConfiguration
+    let emptyStateConfiguration: EmptyStateConfiguration
 
     /**
-     Initializes a new instance of `ListStore`.
+     Initializes a `ListStore` for loading a collection.
 
      - Parameters:
-       - selection: An optional initial selection ID. Default is `nil`.
-       - loadingConfiguration: Configuration for debounce delay and clock. Default is `.default`.
        - emptyStateConfiguration: Configuration for empty state labels and images. Default is `.default`.
        - loader: A closure responsible for loading models asynchronously based on a query.
-       - queryBuilder: A closure responsible for constructing a query from a search string.
-       - onSelectionChange: An optional callback triggered when selection changes.
+       - queryFactory: A closure responsible for constructing the query.
      */
     public init(
-        selection: Model.Element.ID? = nil,
-        loadingConfiguration: LoadingConfiguration = .default,
         emptyStateConfiguration: EmptyStateConfiguration = .default,
         loader: @escaping DataLoader<Query, Model>,
-        queryBuilder: @escaping QueryBuilder<Query>,
-        onSelectionChange: ((Model.Element?) -> Void)? = nil
+        queryFactory: @escaping QueryProvider<Query>
     ) {
         self.emptyStateConfiguration = emptyStateConfiguration
         self.state = .idle
-
-        let paginationEngine = PaginationEngine<Model, Failure>(
-            emptyStateConfiguration: emptyStateConfiguration
-        )
-        self.paginationEngine = paginationEngine
-
+        self.queryFactory = queryFactory
         self.loadingEngine = LoadingEngine(
             loader: loader,
             emptyStateConfiguration: emptyStateConfiguration,
-            loadMoreStateResolver: paginationEngine.loadMoreState
-        )
-
-        self.searchEngine = SearchEngine(
-            queryBuilder: queryBuilder,
-            loadingConfiguration: loadingConfiguration
-        )
-
-        self.selectionManager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
-        self.selectionManager.selectedID = selection
-
-        self.searchEngine.loadModel = { [weak self] query, forceReload in
-            guard let self else { throw SearchEngine<Model, Query, Failure>.SearchEngineError.instanceDeallocated }
-            return try await self.loadingEngine.loadModel(
-                query: query,
-                forceReload: forceReload,
-                currentState: self.state,
-                setState: { self.state = $0 }
-            )
-        }
-    }
-
-    /**
-     Initializes a new instance of `ListStore` with a query factory.
-
-     Use this initializer when the query does not depend on a search string.
-
-     - Parameters:
-       - selection: An optional initial selection ID. Default is `nil`.
-       - loadingConfiguration: Configuration for debounce delay and clock. Default is `.default`.
-       - emptyStateConfiguration: Configuration for empty state labels and images. Default is `.default`.
-       - loader: A closure responsible for loading models asynchronously based on a query.
-       - queryFactory: A closure responsible for constructing a query without a search string input.
-       - onSelectionChange: An optional callback triggered when selection changes.
-     */
-    public convenience init(
-        selection: Model.Element.ID? = nil,
-        loadingConfiguration: LoadingConfiguration = .default,
-        emptyStateConfiguration: EmptyStateConfiguration = .default,
-        loader: @escaping DataLoader<Query, Model>,
-        queryFactory: @escaping QueryProvider<Query>,
-        onSelectionChange: ((Model.Element?) -> Void)? = nil
-    ) {
-        self.init(
-            selection: selection,
-            loadingConfiguration: loadingConfiguration,
-            emptyStateConfiguration: emptyStateConfiguration,
-            loader: loader,
-            queryBuilder: { _ in try queryFactory() },
-            onSelectionChange: onSelectionChange
+            loadMoreStateResolver: { _ in .unavailable }
         )
     }
 
     // MARK: - Loading
 
-    /// Updates the query builder closure used to construct queries from search strings.
-    ///
-    /// - Parameter builder: The new query builder closure.
-    public func updateQueryBuilder(_ builder: @escaping QueryBuilder<Query>) {
-        searchEngine.updateQueryBuilder(builder)
-    }
-
     /**
-     Loads models asynchronously based on the current query, with an option to force reload.
+     Loads models asynchronously based on the current query factory, with an option to force reload.
 
      - Parameter forceReload: A boolean flag to force reloading even if the query is cached. Default is false.
      */
     public func load(forceReload: Bool = false) async {
         do {
-            let query = try searchEngine.buildQuery()
-            await load(query: query, forceReload: forceReload)
+            let query = try queryFactory()
+            try await loadingEngine.loadModel(
+                query: query,
+                forceReload: forceReload,
+                currentState: state,
+                setState: { self.state = $0 }
+            )
+        } catch is CancellationError {
         } catch {
             if let failure = error as? Failure {
                 state = .error(failure, previousState: state)
@@ -311,20 +226,9 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
      - Parameters:
        - query: The query used to load models asynchronously.
        - forceReload: A boolean flag to force reloading even if the query is cached. Default is false.
+     - Returns: The loaded model.
+     - Throws: `CancellationError` if the task was cancelled, or the loader's error.
      */
-    public func load(query: Query, forceReload: Bool = false) async {
-        do {
-            _ = try await searchEngine.debouncedLoad(query: query, forceReload: forceReload)
-        } catch is CancellationError {
-        } catch {
-            if let failure = error as? Failure {
-                state = .error(failure, previousState: state)
-            } else {
-                assertionFailure("Unhandled error type in ListStore.load(query:): \(error)")
-            }
-        }
-    }
-
     @discardableResult
     public func loadModel(query: Query, forceReload: Bool = false) async throws -> Model {
         try await loadingEngine.loadModel(
@@ -335,41 +239,10 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         )
     }
 
-    // MARK: - Pagination
+    // MARK: - Cancel
 
-    public func loadMore() async throws {
-        try await paginationEngine.loadMore(
-            currentState: state,
-            setState: { self.state = $0 },
-            invalidateCache: { self.loadingEngine.invalidateCache() }
-        )
-    }
-
-    // MARK: - Search
-
-    /**
-     Initiates a search asynchronously based on the provided query string.
-
-     - Parameter query: The search query string to perform.
-     */
-    public func search(_ query: String) async {
-        searchEngine.updateQueryString(query)
-        do {
-            let query = try searchEngine.buildQuery()
-            await load(query: query)
-        } catch {
-            if let failure = error as? Failure {
-                state = .error(failure, previousState: state)
-            } else {
-                assertionFailure("Unhandled error type in ListStore.search(): \(error)")
-            }
-        }
-    }
-
-    /**
-     Cancels any ongoing search or load operations.
-     */
-    public func cancelSearch() async {
+    /// Cancels any in-progress loading operation.
+    public func cancel() {
         if case let .inProgress(cancellable, _) = state {
             cancellable.cancel()
         }

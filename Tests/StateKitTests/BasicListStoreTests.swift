@@ -13,14 +13,14 @@ struct BasicListStoreTests {
     // MARK: - SUT Creation
 
     private func makeSUT() async -> (
-        sut: BasicListStore<[TestItem], TestQuery, any Error>,
+        sut: ListStore<[TestItem], TestQuery, any Error>,
         loader: AsyncSpy<[TestItem]>,
         queryFactory: QueryFactoryStub
     ) {
         let loader = AsyncSpy<[TestItem]>()
         let queryFactory = QueryFactoryStub()
 
-        let sut: BasicListStore<[TestItem], TestQuery, any Error> = BasicListStore(
+        let sut: ListStore<[TestItem], TestQuery, any Error> = ListStore(
             loader: loader.load,
             queryFactory: queryFactory.make
         )
@@ -190,19 +190,9 @@ struct BasicListStoreTests {
     // MARK: - Protocol Conformance
 
     @Test(.teardownTracking())
-    func basicListStore_conformsToListStateProviding() async throws {
+    func listStore_conformsToListStateProviding() async throws {
         let (sut, _, _) = await makeSUT()
         let _: any ListStateProviding = sut
-    }
-
-    @Test(.teardownTracking())
-    func basicListStore_doesNotConformToPaginatedListProviding() async throws {
-        // BasicListStore conforms to ListStateProviding but NOT PaginatedListProviding.
-        // This is a compile-time guarantee — the test verifies the type is usable as ListStateProviding.
-        let (sut, _, _) = await makeSUT()
-        #expect(sut is any ListStateProviding)
-        // Note: We cannot directly test "does not conform" at runtime,
-        // but PaginatedListProviding requires loadMore() which BasicListStore does not have.
     }
 
     // MARK: - Load with loadMoreState always .unavailable

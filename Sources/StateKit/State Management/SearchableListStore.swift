@@ -1,0 +1,128 @@
+// SearchableListStore.swift
+// Copyright (c) 2025 Moroverse
+// Created by Daniel Moro on 2026-02-01 GMT.
+
+import Clocks
+import Foundation
+import Observation
+
+/// A decorator that adds debounced search to a ``ListStore``.
+///
+/// `SearchableListStore` wraps a ``ListStore`` and adds the ability to search
+/// with automatic debouncing. It conforms to ``ListStateProviding`` and
+/// ``SearchableListProviding``.
+///
+/// ### Usage:
+///
+/// ```swift
+/// let store = ListStore(loader: api.fetch, queryFactory: { .default })
+///     .searchable(queryBuilder: { term in Query(term: term) })
+/// ```
+///
+/// - Note: This class is `@MainActor` and should be used from the main thread.
+@MainActor
+@Observable
+public final class SearchableListStore<Model: RandomAccessCollection, Query: Sendable, Failure: Error>
+    where Model: Sendable, Query: Sendable & Equatable, Model.Element: Identifiable, Model.Element: Sendable {
+
+    /// The underlying list store that performs actual loading.
+    public let listStore: ListStore<Model, Query, Failure>
+
+    @ObservationIgnored
+    private var searchEngine: SearchEngine<Model, Query, Failure>
+
+    /// Initializes a searchable wrapper around a ``ListStore``.
+    ///
+    /// - Parameters:
+    ///   - listStore: The base list store to wrap.
+    ///   - queryBuilder: A closure that builds a query from a search string.
+    ///   - loadingConfiguration: Configuration for debounce delay and clock. Default is `.default`.
+    public init(
+        listStore: ListStore<Model, Query, Failure>,
+        queryBuilder: @escaping QueryBuilder<Query>,
+        loadingConfiguration: LoadingConfiguration = .default
+    ) {
+        self.listStore = listStore
+        self.searchEngine = SearchEngine(
+            queryBuilder: queryBuilder,
+            loadingConfiguration: loadingConfiguration
+        )
+
+        self.searchEngine.loadModel = { [weak listStore] query, forceReload in
+            guard let listStore else { throw SearchEngine<Model, Query, Failure>.SearchEngineError.instanceDeallocated }
+            return try await listStore.loadModel(query: query, forceReload: forceReload)
+        }
+    }
+
+    // MARK: - ListStateProviding
+
+    public var state: ListLoadingState<Model, Failure> {
+        listStore.state
+    }
+
+    public func load(forceReload: Bool = false) async {
+        do {
+            let query = try searchEngine.buildQuery()
+            _ = try await searchEngine.debouncedLoad(query: query, forceReload: forceReload)
+        } catch is CancellationError {
+        } catch {
+            if let failure = error as? Failure {
+                listStore.state = .error(failure, previousState: listStore.state)
+            } else {
+                assertionFailure("Unhandled error type in SearchableListStore.load(): \(error)")
+            }
+        }
+    }
+
+    public func element(at index: Int) -> Model.Element? {
+        listStore.element(at: index)
+    }
+
+    // MARK: - SearchableListProviding
+
+    /// Initiates a search with the provided query string.
+    ///
+    /// Updates the internal query string and triggers a debounced load.
+    ///
+    /// - Parameter query: The search query string to perform.
+    public func search(_ query: String) async {
+        searchEngine.updateQueryString(query)
+        do {
+            let query = try searchEngine.buildQuery()
+            _ = try await searchEngine.debouncedLoad(query: query, forceReload: false)
+        } catch is CancellationError {
+        } catch {
+            if let failure = error as? Failure {
+                listStore.state = .error(failure, previousState: listStore.state)
+            } else {
+                assertionFailure("Unhandled error type in SearchableListStore.search(): \(error)")
+            }
+        }
+    }
+
+    /// Cancels any ongoing search or load operations.
+    public func cancelSearch() async {
+        if case let .inProgress(cancellable, _) = listStore.state {
+            cancellable.cancel()
+        }
+    }
+
+    // MARK: - Additional
+
+    /// Updates the query builder closure used to construct queries from search strings.
+    ///
+    /// - Parameter builder: The new query builder closure.
+    public func updateQueryBuilder(_ builder: @escaping QueryBuilder<Query>) {
+        searchEngine.updateQueryBuilder(builder)
+    }
+
+    /// Cancels any in-progress loading operation.
+    public func cancel() {
+        listStore.cancel()
+    }
+}
+
+// MARK: - Protocol Conformances
+
+extension SearchableListStore: ListStateProviding {}
+extension SearchableListStore: SearchableListProviding {}

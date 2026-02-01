@@ -16,7 +16,7 @@ final class LoadingEngine<Model: RandomAccessCollection, Query: Sendable & Equat
 
     private let loader: DataLoader<Query, Model>
     private let emptyStateConfiguration: EmptyStateConfiguration
-    private let loadMoreStateResolver: (Model) -> LoadMoreState<Model>
+    var loadMoreStateResolver: (Model) -> LoadMoreState<Model>
 
     private(set) var cachedQuery: Query?
     private(set) var currentTask: Task<Model, Error>?
