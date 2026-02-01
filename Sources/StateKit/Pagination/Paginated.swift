@@ -1,5 +1,5 @@
 // Paginated.swift
-// Copyright (c) 2025 Moroverse
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 import Foundation
@@ -58,8 +58,14 @@ extension Paginated: Sendable where Item: Sendable {}
 // MARK: - Collection Conformance
 
 extension Paginated: Collection {
-    public var startIndex: Int { items.startIndex }
-    public var endIndex: Int { items.endIndex }
+    public var startIndex: Int {
+        items.startIndex
+    }
+
+    public var endIndex: Int {
+        items.endIndex
+    }
+
     public subscript(index: Int) -> Item {
         items[index]
     }

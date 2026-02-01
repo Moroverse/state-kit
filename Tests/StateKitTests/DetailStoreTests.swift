@@ -1,5 +1,5 @@
 // DetailStoreTests.swift
-// Copyright (c) 2025 Moroverse
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 import Foundation
@@ -32,7 +32,7 @@ struct DetailStoreTests {
     // MARK: - Test Cases
 
     @Test(.teardownTracking())
-    func init_setsIdleState() async throws {
+    func init_setsIdleState() async {
         let (sut, _, _) = await makeSUT()
         guard case .idle = sut.state else {
             Issue.record("Expected .idle state, got \(sut.state)")

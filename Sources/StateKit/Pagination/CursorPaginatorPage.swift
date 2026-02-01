@@ -1,6 +1,6 @@
 // CursorPaginatorPage.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2025-04-06 16:31 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2026-02-01 06:21 GMT.
 
 /// Shared page-building logic for cursor-based paginators.
 ///

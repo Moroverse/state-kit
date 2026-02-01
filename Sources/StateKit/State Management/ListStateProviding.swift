@@ -1,6 +1,6 @@
 // ListStateProviding.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2026-01-31 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2026-02-01 03:54 GMT.
 
 import Foundation
 
@@ -37,7 +37,12 @@ public protocol ListStateProviding<Model, Failure>: AnyObject, Observable {
 
     var state: ListLoadingState<Model, Failure> { get }
     func load(forceReload: Bool) async
-    func element(at index: Int) -> Model.Element?
+}
+
+public extension ListStateProviding {
+    func element(at index: Int) -> Model.Element? {
+        state.element(at: index)
+    }
 }
 
 /// Protocol for list providers that support pagination (load-more).

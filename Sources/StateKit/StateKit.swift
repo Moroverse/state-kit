@@ -1,7 +1,6 @@
 // StateKit.swift
-// Copyright (c) 2025 Moroverse
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
-
 
 /// A closure type for loading data based on a query.
 public typealias DataLoader<Query, Model> = @Sendable (Query) async throws -> Model

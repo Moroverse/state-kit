@@ -1,6 +1,6 @@
 // SelectableListStore.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2026-02-01 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2026-02-01 10:12 GMT.
 
 import Foundation
 import Observation
@@ -25,7 +25,6 @@ import Observation
 @Observable
 public final class SelectableListStore<Base: ListStateProviding>
     where Base.Model.Element: Identifiable & Sendable {
-
     /// The underlying store being wrapped.
     public let base: Base
 
@@ -45,7 +44,7 @@ public final class SelectableListStore<Base: ListStateProviding>
         self.base = base
         let manager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
         manager.selectedID = selection
-        self.selectionManager = manager
+        selectionManager = manager
     }
 
     // MARK: - ListStateProviding
@@ -56,10 +55,6 @@ public final class SelectableListStore<Base: ListStateProviding>
 
     public func load(forceReload: Bool = false) async {
         await base.load(forceReload: forceReload)
-    }
-
-    public func element(at index: Int) -> Base.Model.Element? {
-        base.element(at: index)
     }
 
     // MARK: - SelectableListProviding

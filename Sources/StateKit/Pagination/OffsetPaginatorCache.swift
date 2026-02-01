@@ -1,9 +1,8 @@
 // OffsetPaginatorCache.swift
-// Copyright (c) 2025 Moroverse
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
-actor OffsetPaginationCache<Element, Key: Hashable & Sendable> where Element: Identifiable & Sendable, Element.ID: Sendable {
-
+actor OffsetPaginationCache<Element: Identifiable & Sendable, Key: Hashable & Sendable> where Element.ID: Sendable {
     struct CacheState {
         let key: Key
         let offset: Int

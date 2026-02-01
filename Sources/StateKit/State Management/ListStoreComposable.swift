@@ -1,6 +1,6 @@
 // ListStoreComposable.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2026-02-01 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2026-02-01 10:12 GMT.
 
 import Foundation
 
@@ -18,21 +18,29 @@ protocol ListStoreComposable: ListStateProviding {
 // MARK: - Conformances
 
 extension ListStore: ListStoreComposable {
-    var coreStore: ListStore<Model, Query, Failure> { self }
+    var coreStore: ListStore<Model, Query, Failure> {
+        self
+    }
 }
 
 extension SearchableListStore: ListStoreComposable {
-    var coreStore: ListStore<Model, Query, Failure> { base }
+    var coreStore: ListStore<Model, Query, Failure> {
+        base
+    }
 }
 
 extension PaginatedListStore: ListStoreComposable where Base: ListStoreComposable {
     typealias Query = Base.Query
-    var coreStore: ListStore<Model, Query, Failure> { base.coreStore }
+    var coreStore: ListStore<Model, Query, Failure> {
+        base.coreStore
+    }
 }
 
 extension SelectableListStore: ListStoreComposable where Base: ListStoreComposable {
     typealias Query = Base.Query
-    var coreStore: ListStore<Model, Query, Failure> { base.coreStore }
+    var coreStore: ListStore<Model, Query, Failure> {
+        base.coreStore
+    }
 }
 
 // MARK: - Factory Methods
@@ -70,14 +78,14 @@ extension ListStoreComposable {
 
 // MARK: - Searchable (ListStore only)
 
-extension ListStore {
+public extension ListStore {
     /// Wraps this store with debounced search support.
     ///
     /// - Parameters:
     ///   - queryBuilder: A closure that builds a query from a search string.
     ///   - loadingConfiguration: Configuration for debounce delay and clock. Default is `.default`.
     /// - Returns: A ``SearchableListStore`` wrapping this store.
-    public func searchable(
+    func searchable(
         queryBuilder: @escaping QueryBuilder<Query>,
         loadingConfiguration: LoadingConfiguration = .default
     ) -> SearchableListStore<Model, Query, Failure> {

@@ -1,8 +1,8 @@
 // CursorPaginationCache.swift
-// Copyright (c) 2025 Moroverse
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
-actor CursorPaginationCache<Element, Key: Hashable & Sendable, Cursor: Hashable & Sendable> where Element: Identifiable & Sendable, Element.ID: Sendable {
+actor CursorPaginationCache<Element: Identifiable & Sendable, Key: Hashable & Sendable, Cursor: Hashable & Sendable> where Element.ID: Sendable {
     private let storage = CursorCacheStorage<Element, Key, Cursor>()
 
     @discardableResult

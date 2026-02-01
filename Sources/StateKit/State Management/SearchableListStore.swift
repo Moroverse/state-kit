@@ -1,6 +1,6 @@
 // SearchableListStore.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2026-02-01 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2026-02-01 10:12 GMT.
 
 import Clocks
 import Foundation
@@ -22,9 +22,8 @@ import Observation
 /// - Note: This class is `@MainActor` and should be used from the main thread.
 @MainActor
 @Observable
-public final class SearchableListStore<Model: RandomAccessCollection, Query: Sendable, Failure: Error>
-    where Model: Sendable, Query: Sendable & Equatable, Model.Element: Identifiable, Model.Element: Sendable {
-
+public final class SearchableListStore<Model: RandomAccessCollection & Sendable, Query: Sendable & Sendable & Equatable, Failure: Error>
+    where Model.Element: Identifiable, Model.Element: Sendable {
     /// The underlying list store that performs actual loading.
     public let base: ListStore<Model, Query, Failure>
 
@@ -43,15 +42,14 @@ public final class SearchableListStore<Model: RandomAccessCollection, Query: Sen
         loadingConfiguration: LoadingConfiguration = .default
     ) {
         self.base = base
-        self.searchEngine = SearchEngine(
+        searchEngine = SearchEngine(
             queryBuilder: queryBuilder,
-            loadingConfiguration: loadingConfiguration
+            loadingConfiguration: loadingConfiguration,
+            loadModel: { [weak base] query, forceReload in
+                guard let base else { throw SearchEngine<Model, Query, Failure>.SearchEngineError.instanceDeallocated }
+                return try await base.loadModel(query: query, forceReload: forceReload)
+            }
         )
-
-        self.searchEngine.loadModel = { [weak base] query, forceReload in
-            guard let base else { throw SearchEngine<Model, Query, Failure>.SearchEngineError.instanceDeallocated }
-            return try await base.loadModel(query: query, forceReload: forceReload)
-        }
     }
 
     // MARK: - ListStateProviding
@@ -72,10 +70,6 @@ public final class SearchableListStore<Model: RandomAccessCollection, Query: Sen
                 assertionFailure("Unhandled error type in SearchableListStore.load(): \(error)")
             }
         }
-    }
-
-    public func element(at index: Int) -> Model.Element? {
-        base.element(at: index)
     }
 
     // MARK: - SearchableListProviding

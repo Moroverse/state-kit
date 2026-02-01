@@ -1,6 +1,6 @@
 // DetailStore.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2024-08-07 18:45 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 import Foundation
 import Observation
@@ -76,7 +76,7 @@ extension LoadingState: Equatable where Model: Equatable, Failure: Equatable {}
  */
 @MainActor
 @Observable
-public class DetailStore<Model, Query, Failure: Error> where Model: Sendable, Query: Sendable & Equatable {
+public class DetailStore<Model: Sendable, Query: Sendable & Equatable, Failure: Error> {
     public var state: LoadingState<Model, Failure>
 
     private let emptyStateConfiguration: EmptyStateConfiguration
@@ -102,7 +102,7 @@ public class DetailStore<Model, Query, Failure: Error> where Model: Sendable, Qu
         queryProvider: @escaping QueryProvider<Query>
     ) {
         self.emptyStateConfiguration = emptyStateConfiguration
-        self.state = .idle
+        state = .idle
         self.loader = loader
         self.queryProvider = queryProvider
     }
@@ -181,7 +181,7 @@ public class DetailStore<Model, Query, Failure: Error> where Model: Sendable, Qu
 }
 
 /// An actor that manages loading and caching of models based on queries.
-actor DataLoaderActor<Query, Model> where Model: Sendable, Query: Hashable & Sendable {
+actor DataLoaderActor<Query: Hashable & Sendable, Model: Sendable> {
     private let loader: DataLoader<Query, Model>
 
     private enum State {

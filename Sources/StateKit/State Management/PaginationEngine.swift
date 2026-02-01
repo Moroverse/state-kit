@@ -1,6 +1,6 @@
 // PaginationEngine.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2026-02-01 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2026-02-01 05:29 GMT.
 
 import Foundation
 
@@ -9,9 +9,8 @@ import Foundation
 /// Used by `ListStore` to manage the `loadMore()` lifecycle. `BasicListStore`
 /// does not use this engine — it has no pagination support.
 @MainActor
-final class PaginationEngine<Model: RandomAccessCollection, Failure: Error>
-    where Model: Sendable, Model.Element: Identifiable & Sendable {
-
+final class PaginationEngine<Model: RandomAccessCollection & Sendable, Failure: Error>
+    where Model.Element: Identifiable & Sendable {
     enum PaginationError: LocalizedError {
         case invalidModel
     }

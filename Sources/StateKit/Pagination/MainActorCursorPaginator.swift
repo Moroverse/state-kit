@@ -1,5 +1,5 @@
 // MainActorCursorPaginator.swift
-// Copyright (c) 2025 Moroverse
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 /**
@@ -70,7 +70,7 @@
  - Note: The `Cursor` type must conform to `Hashable`. `Element` must conform to `Sendable`.
  */
 @MainActor
-public final class MainActorCursorPaginator<Element, Query: Hashable & Sendable, Cursor: Hashable & Sendable> where Element: Identifiable & Sendable {
+public final class MainActorCursorPaginator<Element: Identifiable & Sendable, Query: Hashable & Sendable, Cursor: Hashable & Sendable> {
     /// A function type that loads elements from a remote source.
     ///
     /// - Parameters:
@@ -94,7 +94,7 @@ public final class MainActorCursorPaginator<Element, Query: Hashable & Sendable,
     public init(remoteLoader: @escaping RemoteLoader) {
         cache = MainActorCursorPaginationCache()
         self.remoteLoader = remoteLoader
-        self.asyncSubject = MainActorSubject()
+        asyncSubject = MainActorSubject()
     }
 
     /// Loads the initial page of elements for the given query.
@@ -162,7 +162,7 @@ public final class MainActorCursorPaginator<Element, Query: Hashable & Sendable,
     /// }
     /// ```
     public func subscribe() -> AsyncStream<Paginated<Element>> {
-        return asyncSubject.stream()
+        asyncSubject.stream()
     }
 
     private func loadMorePage(
@@ -185,7 +185,7 @@ public final class MainActorCursorPaginator<Element, Query: Hashable & Sendable,
             items: items
         ) { @MainActor [weak self] query, cursor in
             guard let self else { throw CursorPaginatorPage.Error.paginatorDeallocated }
-            return try await self.loadMorePage(query: query, lastCursor: cursor)
+            return try await loadMorePage(query: query, lastCursor: cursor)
         }
     }
 }

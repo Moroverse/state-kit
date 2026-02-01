@@ -1,5 +1,5 @@
 // ListStoreTests.swift
-// Copyright (c) 2025 Moroverse
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-07 08:57 GMT.
 
 import Clocks
@@ -126,7 +126,7 @@ struct ListStoreTests {
     // MARK: - Test Cases
 
     @Test(.teardownTracking())
-    func init_setsIdleState() async throws {
+    func init_setsIdleState() async {
         let (sut, _, _) = await makeSUT()
 
         guard case .idle = sut.state else {
@@ -419,7 +419,7 @@ struct ListStoreTests {
     }
 
     @Test(.teardownTracking())
-    func selection_doesNotTriggerCallbackWhenStateNotLoaded() async throws {
+    func selection_doesNotTriggerCallbackWhenStateNotLoaded() async {
         var selectedItem: TestListItem?
         var callbackTriggered = false
         let (sut, _, _) = await makeSUT(
@@ -436,7 +436,7 @@ struct ListStoreTests {
     }
 
     @Test(.teardownTracking())
-    func selection_setsSelectionProperty() async throws {
+    func selection_setsSelectionProperty() async {
         let (sut, _, _) = await makeSUT()
 
         #expect(sut.selection == nil)
@@ -449,7 +449,7 @@ struct ListStoreTests {
     }
 
     @Test(.teardownTracking())
-    func canHandleSelection_returnsTrueWhenCallbackProvided() async throws {
+    func canHandleSelection_returnsTrueWhenCallbackProvided() async {
         let (sut, _, _) = await makeSUT(
             onSelectionChange: { _ in
                 // Callback provided
@@ -460,7 +460,7 @@ struct ListStoreTests {
     }
 
     @Test(.teardownTracking())
-    func canHandleSelection_returnsFalseWhenCallbackNotProvided() async throws {
+    func canHandleSelection_returnsFalseWhenCallbackNotProvided() async {
         let (sut, _, _) = await makeSUT(
             onSelectionChange: nil // No callback provided
         )

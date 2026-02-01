@@ -1,9 +1,9 @@
 // LoadingConfiguration.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2025-07-06 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2026-02-01 03:54 GMT.
 
-import Foundation
 import Clocks
+import Foundation
 
 /// Behavioral configuration for list loading (debounce delay and clock).
 public struct LoadingConfiguration: Sendable {

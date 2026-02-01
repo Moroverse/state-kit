@@ -1,6 +1,6 @@
 // BasicListStoreTests.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2026-02-01 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2026-02-01 05:29 GMT.
 
 import Foundation
 import Testing
@@ -35,7 +35,7 @@ struct BasicListStoreTests {
     // MARK: - Init
 
     @Test(.teardownTracking())
-    func init_setsIdleState() async throws {
+    func init_setsIdleState() async {
         let (sut, _, _) = await makeSUT()
         guard case .idle = sut.state else {
             Issue.record("Expected .idle state, got \(sut.state)")
@@ -190,7 +190,7 @@ struct BasicListStoreTests {
     // MARK: - Protocol Conformance
 
     @Test(.teardownTracking())
-    func listStore_conformsToListStateProviding() async throws {
+    func listStore_conformsToListStateProviding() async {
         let (sut, _, _) = await makeSUT()
         let _: any ListStateProviding = sut
     }

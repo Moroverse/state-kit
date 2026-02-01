@@ -1,5 +1,5 @@
-// LastIDPaginationCacheTests.swift
-// Copyright (c) 2025 Moroverse
+// CursorPaginationCacheTests.swift
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-08 05:22 GMT.
 
 import Foundation
@@ -20,7 +20,7 @@ struct CursorPaginationCacheTests {
     // MARK: - Test Cases
 
     @Test(.teardownTracking())
-    func init_createsEmptyCache() async throws {
+    func init_createsEmptyCache() async {
         let sut = await makeSUT()
         let result = await sut.updateCache { _ in
             Difference(insertions: [], deletions: [], updates: [])
@@ -30,7 +30,7 @@ struct CursorPaginationCacheTests {
     }
 
     @Test(.teardownTracking())
-    func updateCache_withKey_addsElementsToEmptyCache() async throws {
+    func updateCache_withKey_addsElementsToEmptyCache() async {
         let sut = await makeSUT()
         let key = TestKey(value: "test-key")
         let items = [TestItem(id: "1", name: "Item 1"), TestItem(id: "2", name: "Item 2")]
@@ -44,7 +44,7 @@ struct CursorPaginationCacheTests {
     }
 
     @Test(.teardownTracking())
-    func updateCache_withSameKey_appendsElements() async throws {
+    func updateCache_withSameKey_appendsElements() async {
         let sut = await makeSUT()
         let key = TestKey(value: "test-key")
         let firstItems = [TestItem(id: "1", name: "Item 1")]
@@ -59,7 +59,7 @@ struct CursorPaginationCacheTests {
     }
 
     @Test(.teardownTracking())
-    func updateCache_withDifferentKey_replacesExistingElements() async throws {
+    func updateCache_withDifferentKey_replacesExistingElements() async {
         let sut = await makeSUT()
         let firstKey = TestKey(value: "key-1")
         let secondKey = TestKey(value: "key-2")
@@ -74,7 +74,7 @@ struct CursorPaginationCacheTests {
     }
 
     @Test(.teardownTracking())
-    func updateCache_withDifference_insertsNewElement() async throws {
+    func updateCache_withDifference_insertsNewElement() async {
         let sut = await makeSUT()
         let key = TestKey(value: "test-key")
         let initialItems = [TestItem(id: "1", name: "Item 1")]
@@ -92,7 +92,7 @@ struct CursorPaginationCacheTests {
     }
 
     @Test(.teardownTracking())
-    func updateCache_withDifference_updatesExistingElement() async throws {
+    func updateCache_withDifference_updatesExistingElement() async {
         let sut = await makeSUT()
         let key = TestKey(value: "test-key")
         let initialItems = [TestItem(id: "1", name: "Item 1")]
@@ -109,7 +109,7 @@ struct CursorPaginationCacheTests {
     }
 
     @Test(.teardownTracking())
-    func updateCache_withDifference_deletesExistingElement() async throws {
+    func updateCache_withDifference_deletesExistingElement() async {
         let sut = await makeSUT()
         let key = TestKey(value: "test-key")
         let initialItems = [
@@ -127,7 +127,7 @@ struct CursorPaginationCacheTests {
     }
 
     @Test(.teardownTracking())
-    func updateCache_withCompleteDifference_performsAllOperations() async throws {
+    func updateCache_withCompleteDifference_performsAllOperations() async {
         let sut = await makeSUT()
         let key = TestKey(value: "test-key")
         let initialItems = [
@@ -152,7 +152,7 @@ struct CursorPaginationCacheTests {
     }
 
     @Test(.teardownTracking())
-    func cachedElement_returnsElementWithMatchingID() async throws {
+    func cachedElement_returnsElementWithMatchingID() async {
         let sut = await makeSUT()
         let key = TestKey(value: "test-key")
         let items = [
@@ -168,7 +168,7 @@ struct CursorPaginationCacheTests {
     }
 
     @Test(.teardownTracking())
-    func cachedElement_returnsNilForNonExistentID() async throws {
+    func cachedElement_returnsNilForNonExistentID() async {
         let sut = await makeSUT()
         let key = TestKey(value: "test-key")
         let items = [TestItem(id: "1", name: "Item 1")]

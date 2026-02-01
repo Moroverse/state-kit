@@ -1,6 +1,6 @@
 // SearchEngine.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2026-02-01 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2026-02-01 05:29 GMT.
 
 import Clocks
 import Foundation
@@ -10,9 +10,8 @@ import Foundation
 /// Manages the `latestQueryString`, `queryBuilder`, and `Debounce` actor.
 /// Used by `ListStore` only — `BasicListStore` has no search capability.
 @MainActor
-final class SearchEngine<Model: RandomAccessCollection, Query: Sendable & Equatable, Failure: Error>
-    where Model: Sendable, Model.Element: Identifiable & Sendable {
-
+final class SearchEngine<Model: RandomAccessCollection & Sendable, Query: Sendable & Equatable, Failure: Error>
+    where Model.Element: Identifiable & Sendable {
     enum SearchEngineError: LocalizedError, CustomStringConvertible {
         case instanceDeallocated
 
@@ -31,7 +30,7 @@ final class SearchEngine<Model: RandomAccessCollection, Query: Sendable & Equata
     private var _debounce: Debounce<Query, Bool, Model>?
 
     private let loadingConfiguration: LoadingConfiguration
-    var loadModel: @MainActor @Sendable (Query, Bool) async throws -> Model
+    let loadModel: @MainActor @Sendable (Query, Bool) async throws -> Model
 
     init(
         queryBuilder: @escaping QueryBuilder<Query>,
@@ -41,17 +40,6 @@ final class SearchEngine<Model: RandomAccessCollection, Query: Sendable & Equata
         self.queryBuilder = queryBuilder
         self.loadingConfiguration = loadingConfiguration
         self.loadModel = loadModel
-    }
-
-    init(
-        queryBuilder: @escaping QueryBuilder<Query>,
-        loadingConfiguration: LoadingConfiguration
-    ) {
-        self.queryBuilder = queryBuilder
-        self.loadingConfiguration = loadingConfiguration
-        self.loadModel = { _, _ in
-            preconditionFailure("SearchEngine.loadModel must be configured before use")
-        }
     }
 
     /// Builds a query from the current `latestQueryString`.
@@ -84,7 +72,7 @@ final class SearchEngine<Model: RandomAccessCollection, Query: Sendable & Equata
         if let existing = _debounce {
             return existing
         }
-        let loadModel = self.loadModel
+        let loadModel = loadModel
         let debounce = Debounce<Query, Bool, Model>(
             call: { @Sendable query, forceReload in
                 try await loadModel(query, forceReload)

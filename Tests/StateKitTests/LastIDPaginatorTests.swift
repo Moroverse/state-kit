@@ -1,5 +1,5 @@
 // LastIDPaginatorTests.swift
-// Copyright (c) 2025 Moroverse
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-08 12:52 GMT.
 
 import Foundation
@@ -134,7 +134,7 @@ struct LastIDPaginatorTests {
     }
 
     @Test("Load - Propagates error from remote loader", .teardownTracking())
-    func load_propagatesErrorFromRemoteLoader() async throws {
+    func load_propagatesErrorFromRemoteLoader() async {
         let query = TestQuery(value: "test-query")
         let (sut, loader) = await makeSUT()
         let expectedError = NSError(domain: "test-error", code: 1)

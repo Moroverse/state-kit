@@ -1,5 +1,5 @@
 // DebounceTests.swift
-// Copyright (c) 2025 Moroverse
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 import Clocks
@@ -7,7 +7,7 @@ import Testing
 @testable import StateKit
 
 struct DebounceTests {
-    @Test func testDebounce() async throws {
+    @Test func testDebounce() async {
         let clock = TestClock()
         let spy = DebouncerSpy(clock: clock)
 

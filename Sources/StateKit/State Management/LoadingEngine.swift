@@ -1,6 +1,6 @@
 // LoadingEngine.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2026-02-01 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2026-02-01 05:29 GMT.
 
 import Foundation
 
@@ -11,9 +11,8 @@ import Foundation
 /// `@Observable` store classes — this engine only manages the non-observable internals
 /// and computes state transitions.
 @MainActor
-final class LoadingEngine<Model: RandomAccessCollection, Query: Sendable & Equatable, Failure: Error>
-    where Model: Sendable, Model.Element: Identifiable & Sendable {
-
+final class LoadingEngine<Model: RandomAccessCollection & Sendable, Query: Sendable & Equatable, Failure: Error>
+    where Model.Element: Identifiable & Sendable {
     private let loader: DataLoader<Query, Model>
     private let emptyStateConfiguration: EmptyStateConfiguration
     var loadMoreStateResolver: (Model) -> LoadMoreState

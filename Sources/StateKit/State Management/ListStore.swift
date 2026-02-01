@@ -1,6 +1,6 @@
 // ListStore.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2025-04-06 16:31 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2026-02-01 03:54 GMT.
 
 import Clocks
 import DeveloperToolsSupport
@@ -67,8 +67,7 @@ public final class Cancellable: Hashable, Sendable {
 /// - `error`: Failed to load with typed error information
 ///
 /// - Note: This enum is `indirect` because it contains recursive references to `Self` in the `previousState` parameters.
-public indirect enum ListLoadingState<Model, Failure: Error> where Model: RandomAccessCollection {
-
+public indirect enum ListLoadingState<Model: RandomAccessCollection, Failure: Error> {
     /// The initial state before any loading operation has been triggered.
     case idle
 
@@ -102,6 +101,21 @@ public indirect enum ListLoadingState<Model, Failure: Error> where Model: Random
 }
 
 extension ListLoadingState: Equatable where Model: Equatable, Failure: Equatable {}
+
+public extension ListLoadingState where Model.Element: Identifiable {
+    /// Retrieves the element at the specified index from the loaded model, if available.
+    ///
+    /// - Parameter index: The index of the element to retrieve.
+    /// - Returns: The element at the specified index, or `nil` if not in a `.loaded` state or index is out of bounds.
+    func element(at index: Int) -> Model.Element? {
+        if case let .loaded(model, _) = self {
+            let modelIndex = model.index(model.startIndex, offsetBy: index)
+            guard modelIndex < model.endIndex else { return nil }
+            return model[modelIndex]
+        }
+        return nil
+    }
+}
 
 /// The state of pagination for a loaded collection.
 public enum LoadMoreState {
@@ -151,9 +165,8 @@ extension LoadMoreState: Equatable {}
  */
 @MainActor
 @Observable
-public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Failure: Error>
-    where Model: Sendable, Query: Sendable & Equatable, Model.Element: Identifiable, Model.Element: Sendable {
-
+public final class ListStore<Model: RandomAccessCollection & Sendable, Query: Sendable & Sendable & Equatable, Failure: Error>
+    where Model.Element: Identifiable, Model.Element: Sendable {
     public var state: ListLoadingState<Model, Failure>
 
     // MARK: - Engines
@@ -185,9 +198,9 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         queryFactory: @escaping QueryProvider<Query>
     ) {
         self.emptyStateConfiguration = emptyStateConfiguration
-        self.state = .idle
+        state = .idle
         self.queryFactory = queryFactory
-        self.loadingEngine = LoadingEngine(
+        loadingEngine = LoadingEngine(
             loader: loader,
             emptyStateConfiguration: emptyStateConfiguration,
             loadMoreStateResolver: { _ in .unavailable }
@@ -246,23 +259,5 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         if case let .inProgress(cancellable, _) = state {
             cancellable.cancel()
         }
-    }
-
-    // MARK: - Element Access
-
-    /**
-     Retrieves the model element at the specified index.
-
-     - Parameter index: The index of the model element to retrieve.
-     - Returns: The model element at the specified index, if available; otherwise, `nil`.
-     */
-    public func element(at index: Int) -> Model.Element? {
-        if case let .loaded(model, _) = state {
-            let modelIndex = model.index(model.startIndex, offsetBy: index)
-            guard modelIndex < model.endIndex else { return nil }
-            return model[modelIndex]
-        }
-
-        return nil
     }
 }

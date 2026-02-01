@@ -1,5 +1,5 @@
 // Difference.swift
-// Copyright (c) 2025 Moroverse
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 /// Represents changes to be applied to the cached collection.

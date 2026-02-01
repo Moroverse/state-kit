@@ -1,5 +1,5 @@
 // CursorPaginator.swift
-// Copyright (c) 2025 Moroverse
+// Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 /**
@@ -52,7 +52,7 @@
 
  - Note: The `Cursor` type must conform to `Hashable & Sendable`. Swift tuples automatically conform when their elements do.
  */
-public actor CursorPaginator<Element, Query: Hashable & Sendable, Cursor: Hashable & Sendable> where Element: Identifiable & Sendable, Element.ID: Sendable {
+public actor CursorPaginator<Element: Identifiable & Sendable, Query: Hashable & Sendable, Cursor: Hashable & Sendable> where Element.ID: Sendable {
     /// A function type that loads elements from a remote source.
     ///
     /// - Parameters:
@@ -76,7 +76,7 @@ public actor CursorPaginator<Element, Query: Hashable & Sendable, Cursor: Hashab
     public init(remoteLoader: @escaping RemoteLoader) {
         cache = CursorPaginationCache()
         self.remoteLoader = remoteLoader
-        self.asyncSubject = AsyncSubject()
+        asyncSubject = AsyncSubject()
     }
 
     /// Loads the initial page of elements for the given query.
@@ -167,7 +167,7 @@ public actor CursorPaginator<Element, Query: Hashable & Sendable, Cursor: Hashab
             items: items
         ) { [weak self] query, cursor in
             guard let self else { throw CursorPaginatorPage.Error.paginatorDeallocated }
-            return try await self.loadMorePage(query: query, lastCursor: cursor)
+            return try await loadMorePage(query: query, lastCursor: cursor)
         }
     }
 }

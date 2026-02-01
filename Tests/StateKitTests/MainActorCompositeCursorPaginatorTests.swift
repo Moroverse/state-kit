@@ -1,6 +1,6 @@
 // MainActorCompositeCursorPaginatorTests.swift
-// Copyright (c) 2025 Moroverse
-// Created by Daniel Moro on 2025-04-08 12:52 GMT.
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2025-11-09 08:37 GMT.
 
 import Foundation
 import Testing

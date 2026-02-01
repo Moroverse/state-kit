@@ -1,9 +1,6 @@
-//
-//  AsyncSubject.swift
-//  state-kit
-//
-//  Created by Daniel Moro on 6. 11. 2025..
-//
+// AsyncSubject.swift
+// Copyright (c) 2026 Moroverse
+// Created by Daniel Moro on 2025-11-06 06:35 GMT.
 
 import Foundation
 
