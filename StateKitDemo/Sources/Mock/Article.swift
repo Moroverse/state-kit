@@ -1,10 +1,10 @@
 // Article.swift
 // Copyright (c) 2026 Moroverse
-// Created by Daniel Moro on 2026-02-01 11:34 GMT.
+// Created by Daniel Moro on 2026-02-01 12:28 GMT.
 
 import Foundation
 
-struct Article: Identifiable, Equatable, Sendable {
+nonisolated struct Article: Identifiable, Equatable, Sendable {
     let id: String
     let title: String
     let author: String
@@ -12,7 +12,7 @@ struct Article: Identifiable, Equatable, Sendable {
     let publishedAt: Date
 }
 
-struct ArticleQuery: Equatable, Sendable, Hashable {
+nonisolated struct ArticleQuery: Equatable, Sendable, Hashable {
     var term: String
     var page: Int
 

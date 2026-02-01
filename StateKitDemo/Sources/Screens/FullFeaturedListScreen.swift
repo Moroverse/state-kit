@@ -1,68 +1,67 @@
 // FullFeaturedListScreen.swift
 // Copyright (c) 2026 Moroverse
-// Created by Daniel Moro on 2026-02-01 12:21 GMT.
+// Created by Daniel Moro on 2026-02-01 12:28 GMT.
 
 import StateKit
 import SwiftUI
 
 struct FullFeaturedListScreen: View {
-    typealias FullStore = SelectableListStore<
-        PaginatedListStore<
-            SearchableListStore<Paginated<Article>, ArticleQuery, any Error>
-        >
-    >
+    typealias FullStore = SelectableListStore<PaginatedListStore<SearchableListStore<Paginated<Article>, ArticleQuery, any Error>>>
 
-    @State private var service = MockArticleService()
-    @State private var store: FullStore?
+    @State private var service: MockArticleService
+    @State private var store: FullStore
     @State private var searchText = ""
     @State private var selectedArticle: Article?
 
+    init(service: MockArticleService = MockArticleService()) {
+        self.service = service
+        let store = ListStore<Paginated<Article>, ArticleQuery, any Error>(
+            loader: { query in
+                try await service.loadPaginatedArticles(query: query)
+            },
+            queryFactory: { ArticleQuery(term: "", page: 0) }
+        )
+        .searchable(queryBuilder: { term in ArticleQuery(term: term, page: 0) })
+        .paginated()
+        .selectable()
+
+        self.store = store
+    }
+
     var body: some View {
-        Group {
-            if let store {
-                stateView(for: store)
-            } else {
-                ProgressView()
+        stateView(for: store)
+            .navigationTitle("Full-Featured")
+            .searchable(text: $searchText)
+            .onChange(of: searchText) { _, newValue in
+                Task { await store.search(newValue) }
             }
-        }
-        .navigationTitle("Full-Featured")
-        .searchable(text: $searchText)
-        .onChange(of: searchText) { _, newValue in
-            guard let store else { return }
-            Task { await store.search(newValue) }
-        }
-        .sheet(item: $selectedArticle) { article in
-            NavigationStack {
-                ArticleDetailView(article: article)
-                    .toolbar {
-                        ToolbarItem(placement: .topBarTrailing) {
-                            Button("Done") { selectedArticle = nil }
+            .onChange(of: store.selection) { _, newSelection in
+                if let newSelection, case let .loaded(articles, _) = store.state {
+                    selectedArticle = articles.first { $0.id == newSelection }
+                } else {
+                    selectedArticle = nil
+                }
+            }
+            .sheet(item: $selectedArticle) { article in
+                NavigationStack {
+                    ArticleDetailView(article: article)
+                        .toolbar {
+                            ToolbarItem(placement: .topBarTrailing) {
+                                Button("Done") { selectedArticle = nil }
+                            }
                         }
-                    }
+                }
             }
-        }
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Toggle("Fail", isOn: $service.shouldFail)
-                    .toggleStyle(.switch)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Toggle("Fail", isOn: $service.shouldFail)
+                        .buttonStyle(.glass)
+                        .toggleStyle(.button)
+                }
             }
-        }
-        .task {
-            let newStore = ListStore<Paginated<Article>, ArticleQuery, any Error>(
-                loader: { query in
-                    try await service.loadPaginatedArticles(query: query)
-                },
-                queryFactory: { ArticleQuery(term: "", page: 0) }
-            )
-            .searchable(queryBuilder: { term in ArticleQuery(term: term, page: 0) })
-            .paginated()
-            .selectable(onSelectionChange: { [weak service] article in
-                guard service != nil else { return }
-                selectedArticle = article
-            })
-            store = newStore
-            await newStore.load()
-        }
+            .task {
+                await store.load()
+            }
     }
 
     @ViewBuilder
@@ -72,25 +71,17 @@ struct FullFeaturedListScreen: View {
             ContentUnavailableView("Idle", systemImage: "tray")
 
         case let .inProgress(cancellable, previousState: previous):
-            if case let .loaded(articles, _) = previous {
-                articleList(articles, store: store)
-                    .overlay(alignment: .bottom) {
-                        loadingBanner(cancellable: cancellable)
-                    }
+            if case let .loaded(articles, loadMoreState) = previous {
+                articleList(articles, loadMoreState)
             } else {
-                ProgressView("Loading articles...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .overlay(alignment: .topTrailing) {
-                        Button("Cancel") { cancellable.cancel() }
-                            .padding()
-                    }
+                VStack {
+                    ProgressView("Loading articles...")
+                    Button("Cancel") { cancellable.cancel() }
+                }
             }
 
         case let .loaded(articles, loadMoreState):
-            articleList(articles, store: store)
-                .safeAreaInset(edge: .bottom) {
-                    loadMoreFooter(state: loadMoreState, store: store)
-                }
+            articleList(articles, loadMoreState)
 
         case let .empty(label, image):
             ContentUnavailableView {
@@ -113,27 +104,30 @@ struct FullFeaturedListScreen: View {
 
     private func articleList(
         _ articles: Paginated<Article>,
-        store: FullStore
+        _ loadMoreState: LoadMoreState
     ) -> some View {
-        List(articles) { article in
-            Button {
-                store.select(article.id)
-            } label: {
-                HStack {
-                    ArticleRow(article: article)
-                    Spacer()
-                    if store.selection == article.id {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundStyle(.tint)
+        List {
+            ForEach(articles) { article in
+                Button {
+                    store.select(article.id)
+                } label: {
+                    HStack {
+                        ArticleRow(article: article)
+                        Spacer()
+                        if store.selection == article.id {
+                            Image(systemName: "checkmark.circle.fill")
+                                .foregroundStyle(.tint)
+                        }
+                    }
+                }
+                .tint(.primary)
+                .onAppear {
+                    if article.id == articles.last?.id {
+                        Task { try? await store.loadMore() }
                     }
                 }
             }
-            .tint(.primary)
-            .onAppear {
-                if article.id == articles.last?.id {
-                    Task { try? await store.loadMore() }
-                }
-            }
+            loadMoreFooter(state: loadMoreState)
         }
         .refreshable {
             await store.load(forceReload: true)
@@ -142,17 +136,11 @@ struct FullFeaturedListScreen: View {
 
     @ViewBuilder
     private func loadMoreFooter(
-        state: LoadMoreState,
-        store: FullStore
+        state: LoadMoreState
     ) -> some View {
         switch state {
         case .unavailable:
-            Text("All articles loaded")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(.ultraThinMaterial)
+            EmptyView()
 
         case let .inProgress(cancellable):
             HStack {
@@ -163,8 +151,6 @@ struct FullFeaturedListScreen: View {
                 Button("Cancel") { cancellable.cancel() }
                     .font(.footnote)
             }
-            .padding()
-            .background(.ultraThinMaterial)
 
         case .ready:
             Button {
@@ -174,18 +160,14 @@ struct FullFeaturedListScreen: View {
                     .font(.footnote)
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
-            .padding()
-            .background(.ultraThinMaterial)
         }
     }
 
     private func loadingBanner(cancellable: Cancellable) -> some View {
-        HStack {
+        VStack {
             ProgressView()
             Text("Refreshing...")
                 .font(.footnote)
-            Spacer()
             Button("Cancel") { cancellable.cancel() }
                 .font(.footnote)
         }

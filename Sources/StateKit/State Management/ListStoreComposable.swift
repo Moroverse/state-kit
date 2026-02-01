@@ -45,11 +45,11 @@ extension SelectableListStore: ListStoreComposable where Base: ListStoreComposab
 
 // MARK: - Factory Methods
 
-extension ListStoreComposable {
+public extension ListStoreComposable {
     /// Wraps this store with pagination support.
     ///
     /// - Returns: A ``PaginatedListStore`` wrapping this store.
-    public func paginated() -> PaginatedListStore<Self> {
+    func paginated() -> PaginatedListStore<Self> {
         let engine = PaginationEngine<Model, Failure>(
             emptyStateConfiguration: coreStore.emptyStateConfiguration
         )
@@ -68,7 +68,7 @@ extension ListStoreComposable {
     ///   - selection: An optional initial selection ID. Default is `nil`.
     ///   - onSelectionChange: An optional callback triggered when selection changes.
     /// - Returns: A ``SelectableListStore`` wrapping this store.
-    public func selectable(
+    func selectable(
         selection: Model.Element.ID? = nil,
         onSelectionChange: ((Model.Element?) -> Void)? = nil
     ) -> SelectableListStore<Self> {

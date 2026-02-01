@@ -1,6 +1,6 @@
 // Project.swift
 // Copyright (c) 2026 Moroverse
-// Created by Daniel Moro on 2026-02-01 11:34 GMT.
+// Created by Daniel Moro on 2026-02-01 12:28 GMT.
 
 import ProjectDescription
 import ProjectDescriptionHelpers
@@ -13,7 +13,14 @@ let project = Project(
             destinations: .iOS,
             product: .app,
             bundleId: "com.moroverse.StateKitDemo",
-            infoPlist: .extendingDefault(with: [:]),
+            infoPlist: .extendingDefault(
+                with: [
+                    "UILaunchScreen": [
+                        "UIColorName": "",
+                        "UIImageName": ""
+                    ]
+                ]
+            ),
             buildableFolders: [
                 "Sources",
                 "Resources"
@@ -27,7 +34,15 @@ let project = Project(
             ],
             dependencies: [
                 .external(name: "StateKit")
-            ]
+            ],
+            settings: .settings(
+                base: [
+                    "SWIFT_DEFAULT_ACTOR_ISOLATION": "MainActor",
+                    "SWIFT_APPROACHABLE_CONCURRENCY": true,
+                    "SWIFT_VERSION": "6.0"
+                ],
+                defaultSettings: .recommended
+            )
         )
     ]
 )

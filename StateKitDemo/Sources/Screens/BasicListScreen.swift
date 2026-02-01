@@ -1,39 +1,44 @@
 // BasicListScreen.swift
 // Copyright (c) 2026 Moroverse
-// Created by Daniel Moro on 2026-02-01 12:20 GMT.
+// Created by Daniel Moro on 2026-02-01 12:28 GMT.
 
 import StateKit
 import SwiftUI
 
 struct BasicListScreen: View {
-    @State private var service = MockArticleService()
-    @State private var store: ListStore<[Article], ArticleQuery, any Error>?
+    @State private var service: MockArticleService
+    @State private var store: ListStore<[Article], ArticleQuery, any Error>
+
+    init(service: MockArticleService = MockArticleService()) {
+        store = ListStore<[Article], ArticleQuery, any Error>(
+            loader: { query in
+                try await service.loadArticles(query: query)
+            },
+            queryFactory: { .default }
+        )
+        self.service = service
+    }
 
     var body: some View {
-        Group {
-            if let store {
-                stateView(for: store)
-            } else {
-                ProgressView()
+        stateView(for: store)
+            .navigationTitle("Basic List")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Toggle("Fail", isOn: $service.shouldFail)
+                        .buttonStyle(.glass)
+                        .toggleStyle(.button)
+                }
             }
-        }
-        .navigationTitle("Basic List")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Toggle("Fail", isOn: $service.shouldFail)
-                    .toggleStyle(.switch)
+            .task {
+                let newStore = ListStore<[Article], ArticleQuery, any Error>(
+                    loader: { query in
+                        try await service.loadArticles(query: query)
+                    },
+                    queryFactory: { .default }
+                )
+                store = newStore
+                await newStore.load()
             }
-        }
-        .task {
-            let newStore = ListStore<[Article], ArticleQuery, any Error>(
-                loader: { query in
-                    try await service.loadArticles(query: query)
-                },
-                queryFactory: { .default }
-            )
-            store = newStore
-            await newStore.load()
-        }
     }
 
     @ViewBuilder

@@ -1,69 +1,60 @@
 // PaginatedListScreen.swift
 // Copyright (c) 2026 Moroverse
-// Created by Daniel Moro on 2026-02-01 12:21 GMT.
+// Created by Daniel Moro on 2026-02-01 12:28 GMT.
 
 import StateKit
 import SwiftUI
 
 struct PaginatedListScreen: View {
     @State private var service = MockArticleService()
-    @State private var store: PaginatedListStore<ListStore<Paginated<Article>, ArticleQuery, any Error>>?
+    @State private var store: PaginatedListStore<ListStore<Paginated<Article>, ArticleQuery, any Error>>
+
+    init(service: MockArticleService = MockArticleService()) {
+        self.service = service
+        store = ListStore<Paginated<Article>, ArticleQuery, any Error>(
+            loader: { query in
+                try await service.loadPaginatedArticles(query: query)
+            },
+            queryFactory: { .default }
+        ).paginated()
+    }
 
     var body: some View {
-        Group {
-            if let store {
-                stateView(for: store)
-            } else {
-                ProgressView()
+        stateView()
+            .navigationTitle("Paginated List")
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Toggle("Fail", isOn: $service.shouldFail)
+                        .buttonStyle(.glass)
+                        .toggleStyle(.button)
+                }
             }
-        }
-        .navigationTitle("Paginated List")
-        .toolbar {
-            ToolbarItem(placement: .topBarTrailing) {
-                Toggle("Fail", isOn: $service.shouldFail)
-                    .toggleStyle(.switch)
+            .task {
+                await store.load()
             }
-        }
-        .task {
-            let newStore = ListStore<Paginated<Article>, ArticleQuery, any Error>(
-                loader: { query in
-                    try await service.loadPaginatedArticles(query: query)
-                },
-                queryFactory: { .default }
-            ).paginated()
-            store = newStore
-            await newStore.load()
-        }
     }
 
     @ViewBuilder
-    private func stateView(
-        for store: PaginatedListStore<ListStore<Paginated<Article>, ArticleQuery, any Error>>
-    ) -> some View {
+    private func stateView() -> some View {
         switch store.state {
         case .idle:
             ContentUnavailableView("Idle", systemImage: "tray")
 
         case let .inProgress(cancellable, previousState: previous):
-            if case let .loaded(articles, _) = previous {
-                paginatedList(articles, store: store)
+            if case let .loaded(articles, loadMoreState) = previous {
+                paginatedList(articles, loadMoreState)
                     .overlay(alignment: .bottom) {
                         loadingBanner(cancellable: cancellable)
                     }
             } else {
-                ProgressView("Loading articles...")
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .overlay(alignment: .topTrailing) {
-                        Button("Cancel") { cancellable.cancel() }
-                            .padding()
-                    }
+                VStack {
+                    ProgressView("Loading articles...")
+                    Button("Cancel") { cancellable.cancel() }
+                }
             }
 
         case let .loaded(articles, loadMoreState):
-            paginatedList(articles, store: store)
-                .safeAreaInset(edge: .bottom) {
-                    loadMoreFooter(state: loadMoreState, store: store)
-                }
+            paginatedList(articles, loadMoreState)
 
         case let .empty(label, image):
             ContentUnavailableView {
@@ -86,15 +77,13 @@ struct PaginatedListScreen: View {
 
     private func paginatedList(
         _ articles: Paginated<Article>,
-        store: PaginatedListStore<ListStore<Paginated<Article>, ArticleQuery, any Error>>
+        _ loadMoreState: LoadMoreState
     ) -> some View {
-        List(articles) { article in
-            ArticleRow(article: article)
-                .onAppear {
-                    if article.id == articles.last?.id {
-                        Task { try? await store.loadMore() }
-                    }
-                }
+        List {
+            ForEach(articles) { article in
+                ArticleRow(article: article)
+            }
+            loadMoreFooter(state: loadMoreState)
         }
         .refreshable {
             await store.load(forceReload: true)
@@ -103,17 +92,11 @@ struct PaginatedListScreen: View {
 
     @ViewBuilder
     private func loadMoreFooter(
-        state: LoadMoreState,
-        store: PaginatedListStore<ListStore<Paginated<Article>, ArticleQuery, any Error>>
+        state: LoadMoreState
     ) -> some View {
         switch state {
         case .unavailable:
-            Text("All articles loaded")
-                .font(.footnote)
-                .foregroundStyle(.secondary)
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 8)
-                .background(.ultraThinMaterial)
+            EmptyView()
 
         case let .inProgress(cancellable):
             HStack {
@@ -124,8 +107,6 @@ struct PaginatedListScreen: View {
                 Button("Cancel") { cancellable.cancel() }
                     .font(.footnote)
             }
-            .padding()
-            .background(.ultraThinMaterial)
 
         case .ready:
             Button {
@@ -135,18 +116,14 @@ struct PaginatedListScreen: View {
                     .font(.footnote)
                     .frame(maxWidth: .infinity)
             }
-            .buttonStyle(.bordered)
-            .padding()
-            .background(.ultraThinMaterial)
         }
     }
 
     private func loadingBanner(cancellable: Cancellable) -> some View {
-        HStack {
+        VStack {
             ProgressView()
             Text("Refreshing...")
                 .font(.footnote)
-            Spacer()
             Button("Cancel") { cancellable.cancel() }
                 .font(.footnote)
         }
