@@ -42,7 +42,8 @@ public protocol ListStateProviding<Model, Failure>: AnyObject, Observable {
 
 /// Protocol for list providers that support pagination (load-more).
 ///
-/// Extends ``ListStateProviding`` with `loadMore()` for paginated collections.
+/// Extends ``ListStateProviding`` directly — pagination is orthogonal to search and selection.
+/// Combine with other protocols as needed: `PaginatedListProviding & SearchableListProviding`.
 /// ``ListStore`` conforms to this protocol; ``BasicListStore`` does not.
 @MainActor
 public protocol PaginatedListProviding: ListStateProviding {
@@ -50,15 +51,21 @@ public protocol PaginatedListProviding: ListStateProviding {
 }
 
 /// Protocol for list providers that support text search with debouncing.
+///
+/// Extends ``ListStateProviding`` directly — search is orthogonal to pagination and selection.
+/// Combine with other protocols as needed: `SearchableListProviding & PaginatedListProviding`.
 @MainActor
-public protocol SearchableListProviding: PaginatedListProviding {
+public protocol SearchableListProviding: ListStateProviding {
     func search(_ query: String) async
     func cancelSearch() async
 }
 
 /// Protocol for list providers that support item selection.
+///
+/// Extends ``ListStateProviding`` directly — selection is orthogonal to pagination and search.
+/// Combine with other protocols as needed: `SelectableListProviding & PaginatedListProviding`.
 @MainActor
-public protocol SelectableListProviding: PaginatedListProviding {
+public protocol SelectableListProviding: ListStateProviding {
     var selection: Model.Element.ID? { get set }
     var canHandleSelection: Bool { get }
 }
