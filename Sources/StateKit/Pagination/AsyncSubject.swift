@@ -34,7 +34,7 @@ public actor AsyncSubject<Value: Sendable> {
 }
 
 @MainActor
-public final class MainActorSubject<Value> {
+public final class MainActorSubject<Value: Sendable> {
     private var continuations: [UUID: AsyncStream<Value>.Continuation] = [:]
 
     public init() {}
@@ -50,10 +50,8 @@ public final class MainActorSubject<Value> {
     }
 
     public func send(_ value: Value) {
-        // Safe because both send() and stream consumers are @MainActor isolated
-        nonisolated(unsafe) let unsafeValue = value
         for continuation in continuations.values {
-            continuation.yield(unsafeValue)
+            continuation.yield(value)
         }
     }
 

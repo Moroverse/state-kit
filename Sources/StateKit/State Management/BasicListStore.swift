@@ -85,6 +85,8 @@ public final class BasicListStore<Model: RandomAccessCollection, Query: Sendable
         } catch {
             if let failure = error as? Failure {
                 state = .error(failure, previousState: state)
+            } else {
+                assertionFailure("Unhandled error type in BasicListStore.load(): \(error)")
             }
         }
     }

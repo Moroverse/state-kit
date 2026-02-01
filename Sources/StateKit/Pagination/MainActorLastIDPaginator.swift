@@ -7,7 +7,7 @@
 
  `MainActorLastIDPaginator` is a type alias for `MainActorCursorPaginator` where the cursor type is `Element.ID`.
  This provides a convenient interface for the common case of paginating by the last element's identifier,
- with MainActor isolation for direct UI integration and non-Sendable element support.
+ with MainActor isolation for direct UI integration.
 
  For more complex pagination scenarios requiring composite cursors (e.g., timestamp + ID),
  use `MainActorCursorPaginator` directly with a tuple or custom cursor type:

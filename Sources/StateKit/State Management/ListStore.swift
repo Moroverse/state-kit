@@ -298,6 +298,8 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         } catch {
             if let failure = error as? Failure {
                 state = .error(failure, previousState: state)
+            } else {
+                assertionFailure("Unhandled error type in ListStore.load(): \(error)")
             }
         }
     }
@@ -316,6 +318,8 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         } catch {
             if let failure = error as? Failure {
                 state = .error(failure, previousState: state)
+            } else {
+                assertionFailure("Unhandled error type in ListStore.load(query:): \(error)")
             }
         }
     }
@@ -355,6 +359,8 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         } catch {
             if let failure = error as? Failure {
                 state = .error(failure, previousState: state)
+            } else {
+                assertionFailure("Unhandled error type in ListStore.search(): \(error)")
             }
         }
     }

@@ -10,25 +10,16 @@ Collection of common foundation objects for managing state change and loading of
 
 ### State Management
 
-- ``StateKit/ListModel``
-- ``StateKit/DetailModel``
-- ``StateKit/EditModel``
-- ``StateKit/CreationModel``
-
-### Utilities
-
-- ``StateKit/Debounce``
-- ``StateKit/MockService``
+- ``StateKit/ListStore``
+- ``StateKit/BasicListStore``
+- ``StateKit/DetailStore``
 
 ### Pagination
 - ``StateKit/Paginated``
 - ``StateKit/LastIDPaginator``
 - ``StateKit/OffsetPaginator``
 
-### Event Handling
+### Utilities
 
-- ``StateKit/Event``
-- ``StateKit/EventSubscription``
-- ``StateKit/EventBroker``
-- <doc:Event-Handling>
+- ``StateKit/Debounce``
 

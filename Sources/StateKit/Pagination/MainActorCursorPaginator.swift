@@ -7,7 +7,7 @@
 
  `MainActorCursorPaginator` is the MainActor equivalent of `CursorPaginator`, designed for:
  - Direct UI integration without async overhead
- - Non-Sendable element types (e.g., SwiftUI view models with `@Published`)
+ - Sendable element types used directly on MainActor
  - Reactive updates via `subscribe()` for observing pagination changes
  - Synchronous cache access when already on MainActor
 
@@ -67,10 +67,10 @@
  }
  ```
 
- - Note: The `Cursor` type must conform to `Hashable`. Unlike `CursorPaginator`, no `Sendable` requirement.
+ - Note: The `Cursor` type must conform to `Hashable`. `Element` must conform to `Sendable`.
  */
 @MainActor
-public final class MainActorCursorPaginator<Element, Query: Hashable, Cursor: Hashable> where Element: Identifiable {
+public final class MainActorCursorPaginator<Element, Query: Hashable, Cursor: Hashable> where Element: Identifiable & Sendable {
     /// A function type that loads elements from a remote source.
     ///
     /// - Parameters:
