@@ -152,7 +152,7 @@ extension LoadMoreState: Equatable {}
  let store = ListStore(loader: api.fetch, queryFactory: { .default })
      .searchable(queryBuilder: { term in Query(term: term) })
      .paginated()
-     .selectable(onSelectionChange: { item in handle(item) })
+     .selectable()
  ```
 
  ### Type Parameters:

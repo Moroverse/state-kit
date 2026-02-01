@@ -7,9 +7,8 @@ import Observation
 
 /// A decorator that adds item selection to any ``ListStateProviding`` store.
 ///
-/// `SelectableListStore` wraps a base store and adds selection tracking
-/// with an optional callback. It conforms to ``ListStateProviding`` and
-/// ``SelectableListProviding``.
+/// `SelectableListStore` wraps a base store and adds selection tracking.
+/// It conforms to ``ListStateProviding`` and ``SelectableListProviding``.
 ///
 /// ### Usage:
 ///
@@ -17,7 +16,7 @@ import Observation
 /// let store = ListStore(loader: api.fetch, queryFactory: { .default })
 ///     .searchable(queryBuilder: { term in Query(term: term) })
 ///     .paginated()
-///     .selectable(onSelectionChange: { item in handle(item) })
+///     .selectable()
 /// ```
 ///
 /// - Note: This class is `@MainActor` and should be used from the main thread.
@@ -28,23 +27,19 @@ public final class SelectableListStore<Base: ListStateProviding>
     /// The underlying store being wrapped.
     public let base: Base
 
-    private var selectionManager: CallbackSelectionManager<Base.Model.Element>
+    private var _selectedID: Base.Model.Element.ID?
 
     /// Initializes a selectable wrapper around a base store.
     ///
     /// - Parameters:
     ///   - base: The base store to wrap.
     ///   - selection: An optional initial selection ID. Default is `nil`.
-    ///   - onSelectionChange: An optional callback triggered when selection changes.
     public init(
         base: Base,
-        selection: Base.Model.Element.ID? = nil,
-        onSelectionChange: ((Base.Model.Element?) -> Void)? = nil
+        selection: Base.Model.Element.ID? = nil
     ) {
         self.base = base
-        let manager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
-        manager.selectedID = selection
-        selectionManager = manager
+        _selectedID = selection
     }
 
     // MARK: - ListStateProviding
@@ -61,26 +56,14 @@ public final class SelectableListStore<Base: ListStateProviding>
 
     /// The currently selected element's ID, if any.
     public var selection: Base.Model.Element.ID? {
-        selectionManager.selectedID
+        _selectedID
     }
 
     /// Selects the element with the given ID.
     ///
-    /// If the store is in a `.loaded` state, this also triggers the selection callback
-    /// (if one was provided at initialization).
-    ///
     /// - Parameter id: The ID of the element to select, or `nil` to clear the selection.
     public func select(_ id: Base.Model.Element.ID?) {
-        selectionManager.selectedID = id
-
-        if case let .loaded(model, _) = base.state {
-            selectionManager.handleSelection(from: model)
-        }
-    }
-
-    /// Whether this store can handle selection (i.e., has a callback configured).
-    public var canHandleSelection: Bool {
-        selectionManager.canHandleSelection
+        _selectedID = id
     }
 }
 

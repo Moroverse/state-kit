@@ -73,7 +73,6 @@ public protocol SearchableListProviding: ListStateProviding {
 public protocol SelectableListProviding: ListStateProviding {
     var selection: Model.Element.ID? { get }
     func select(_ id: Model.Element.ID?)
-    var canHandleSelection: Bool { get }
 }
 
 // MARK: - ListStore Conformances

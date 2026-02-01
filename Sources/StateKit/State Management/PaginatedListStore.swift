@@ -97,8 +97,4 @@ extension PaginatedListStore: SelectableListProviding where Base: SelectableList
     public func select(_ id: Base.Model.Element.ID?) {
         base.select(id)
     }
-
-    public var canHandleSelection: Bool {
-        base.canHandleSelection
-    }
 }

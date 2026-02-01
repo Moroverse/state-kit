@@ -66,13 +66,11 @@ public extension ListStoreComposable {
     ///
     /// - Parameters:
     ///   - selection: An optional initial selection ID. Default is `nil`.
-    ///   - onSelectionChange: An optional callback triggered when selection changes.
     /// - Returns: A ``SelectableListStore`` wrapping this store.
     func selectable(
-        selection: Model.Element.ID? = nil,
-        onSelectionChange: ((Model.Element?) -> Void)? = nil
+        selection: Model.Element.ID? = nil
     ) -> SelectableListStore<Self> {
-        SelectableListStore(base: self, selection: selection, onSelectionChange: onSelectionChange)
+        SelectableListStore(base: self, selection: selection)
     }
 }
 

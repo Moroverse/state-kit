@@ -84,11 +84,8 @@ struct ListStoreTests {
         return (sut, loader, queryBuilder, clock)
     }
 
-    // Helper method for tests with selection callback
     // swiftlint:disable:next large_tuple
-    private func makeSUT(
-        onSelectionChange: ((TestListItem?) -> Void)? = nil
-    ) async -> (
+    private func makeSUT() async -> (
         sut: SelectableListStore<SearchableListStore<[TestListItem], TestQuery, any Error>>,
         loader: AsyncSpy<[TestListItem]>,
         queryBuilder: QueryBuilderStub
@@ -114,7 +111,7 @@ struct ListStoreTests {
                     clock: clock
                 )
             )
-            .selectable(onSelectionChange: onSelectionChange)
+            .selectable()
 
         await Test.trackForMemoryLeaks(sut)
         await Test.trackForMemoryLeaks(loader)
@@ -364,78 +361,6 @@ struct ListStoreTests {
     }
 
     @Test(.teardownTracking())
-    func selection_triggersSelectionCallback() async throws {
-        let items = [
-            TestListItem(id: "1", name: "Item 1"),
-            TestListItem(id: "2", name: "Item 2")
-        ]
-
-        var selectedItem: TestListItem?
-        let (sut, loader, queryBuilder) = await makeSUT(
-            onSelectionChange: { selected in
-                selectedItem = selected
-            }
-        )
-
-        queryBuilder.queries = [TestQuery(term: "test")]
-
-        try await loader.async(yieldCount: 2) {
-            await sut.load()
-        } completeWith: {
-            .success(items)
-        }
-
-        sut.select("2")
-        #expect(selectedItem == items[1])
-    }
-
-    @Test(.teardownTracking())
-    func selection_doesNotTriggerCallbackWhenItemNotFound() async throws {
-        let items = [
-            TestListItem(id: "1", name: "Item 1"),
-            TestListItem(id: "2", name: "Item 2")
-        ]
-
-        var selectedItem: TestListItem?
-        var callbackTriggered = false
-        let (sut, loader, queryBuilder) = await makeSUT(
-            onSelectionChange: { selected in
-                selectedItem = selected
-                callbackTriggered = true
-            }
-        )
-
-        queryBuilder.queries = [TestQuery(term: "test")]
-
-        try await loader.async(yieldCount: 2) {
-            await sut.load()
-        } completeWith: {
-            .success(items)
-        }
-
-        sut.select("99") // ID that doesn't exist
-        #expect(callbackTriggered == false)
-        #expect(selectedItem == nil)
-    }
-
-    @Test(.teardownTracking())
-    func selection_doesNotTriggerCallbackWhenStateNotLoaded() async {
-        var selectedItem: TestListItem?
-        var callbackTriggered = false
-        let (sut, _, _) = await makeSUT(
-            onSelectionChange: { selected in
-                selectedItem = selected
-                callbackTriggered = true
-            }
-        )
-
-        // State is .idle, not .loaded
-        sut.select("1")
-        #expect(callbackTriggered == false)
-        #expect(selectedItem == nil)
-    }
-
-    @Test(.teardownTracking())
     func selection_setsSelectionProperty() async {
         let (sut, _, _) = await makeSUT()
 
@@ -449,35 +374,8 @@ struct ListStoreTests {
     }
 
     @Test(.teardownTracking())
-    func canHandleSelection_returnsTrueWhenCallbackProvided() async {
-        let (sut, _, _) = await makeSUT(
-            onSelectionChange: { _ in
-                // Callback provided
-            }
-        )
-
-        #expect(sut.canHandleSelection == true)
-    }
-
-    @Test(.teardownTracking())
-    func canHandleSelection_returnsFalseWhenCallbackNotProvided() async {
-        let (sut, _, _) = await makeSUT(
-            onSelectionChange: nil // No callback provided
-        )
-
-        #expect(sut.canHandleSelection == false)
-    }
-
-    @Test(.teardownTracking())
     func selection_handlesEmptyCollection() async throws {
-        var selectedItem: TestListItem?
-        var callbackTriggered = false
-        let (sut, loader, queryBuilder) = await makeSUT(
-            onSelectionChange: { selected in
-                selectedItem = selected
-                callbackTriggered = true
-            }
-        )
+        let (sut, loader, queryBuilder) = await makeSUT()
 
         queryBuilder.queries = [TestQuery(term: "test")]
 
@@ -488,11 +386,9 @@ struct ListStoreTests {
             .success([]) // Empty array
         }
 
-        // Try to select from empty collection
+        // Select from empty collection — selection property should still be set
         sut.select("1")
-        #expect(callbackTriggered == false)
-        #expect(selectedItem == nil)
-        #expect(sut.selection == "1") // Selection property should still be set
+        #expect(sut.selection == "1")
     }
 
     @Test(.teardownTracking())
@@ -503,14 +399,7 @@ struct ListStoreTests {
             TestListItem(id: "3", name: "Item 3")
         ]
 
-        var selectedItems: [TestListItem] = []
-        let (sut, loader, queryBuilder) = await makeSUT(
-            onSelectionChange: { selected in
-                if let selected {
-                    selectedItems.append(selected)
-                }
-            }
-        )
+        let (sut, loader, queryBuilder) = await makeSUT()
 
         queryBuilder.queries = [TestQuery(term: "test")]
 
@@ -522,16 +411,16 @@ struct ListStoreTests {
 
         // Multiple rapid selection changes
         sut.select("1")
-        sut.select("2")
-        sut.select("3")
-        sut.select("1")
+        #expect(sut.selection == "1")
 
-        #expect(selectedItems.count == 4)
-        #expect(selectedItems[0] == items[0]) // First selection: Item 1
-        #expect(selectedItems[1] == items[1]) // Second selection: Item 2
-        #expect(selectedItems[2] == items[2]) // Third selection: Item 3
-        #expect(selectedItems[3] == items[0]) // Fourth selection: Item 1 again
-        #expect(sut.selection == "1") // Final selection should be "1"
+        sut.select("2")
+        #expect(sut.selection == "2")
+
+        sut.select("3")
+        #expect(sut.selection == "3")
+
+        sut.select("1")
+        #expect(sut.selection == "1")
     }
 
     @Test(.teardownTracking())
@@ -546,12 +435,7 @@ struct ListStoreTests {
             TestListItem(id: "3", name: "Item 3")
         ]
 
-        var callbackCount = 0
-        let (sut, loader, queryBuilder) = await makeSUT(
-            onSelectionChange: { _ in
-                callbackCount += 1
-            }
-        )
+        let (sut, loader, queryBuilder) = await makeSUT()
 
         queryBuilder.queries = [TestQuery(term: "test"), TestQuery(term: "updated")]
 
@@ -563,19 +447,16 @@ struct ListStoreTests {
         }
 
         sut.select("1")
-        #expect(callbackCount == 1)
         #expect(sut.selection == "1")
 
-        // Load new data - selection should be maintained, callback should NOT trigger
+        // Load new data — selection should be maintained
         try await loader.async(yieldCount: 2, at: 1) {
             await sut.load()
         } completeWith: {
             .success(updatedItems)
         }
 
-        // Selection property maintained, callback NOT triggered automatically
-        #expect(sut.selection == "1") // Selection property maintained
-        #expect(callbackCount == 1) // Callback NOT triggered again on data reload
+        #expect(sut.selection == "1")
     }
 
     @Test(.teardownTracking())
@@ -586,7 +467,6 @@ struct ListStoreTests {
             TestListItem(id: "2", name: "Item 2")
         ]
 
-        var selectedItem: TestListItem?
         let loader = AsyncSpy<Paginated<TestListItem>>()
         let queryBuilder = QueryBuilderStub()
         let clock = ImmediateClock()
@@ -609,11 +489,7 @@ struct ListStoreTests {
                 )
             )
             .paginated()
-            .selectable(
-                onSelectionChange: { selected in
-                    selectedItem = selected
-                }
-            )
+            .selectable()
 
         queryBuilder.queries = [TestQuery(term: "test")]
 
@@ -628,14 +504,13 @@ struct ListStoreTests {
 
         // Select item from initial paginated results
         sut.select("1")
-        #expect(selectedItem?.name == "Item 1")
+        #expect(sut.selection == "1")
 
         // Load more data
         try await sut.loadMore()
 
         // Select item that exists in paginated results
         sut.select("2")
-        #expect(selectedItem?.name == "Item 2")
         #expect(sut.selection == "2")
     }
 }

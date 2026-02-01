@@ -25,7 +25,7 @@ The core design is a **decorator chain**. Start with a base `ListStore` and wrap
 ListStore(loader: api.fetch, queryFactory: { .default })
     .searchable(queryBuilder: { term in Query(term: term) })  // → SearchableListStore
     .paginated()                                               // → PaginatedListStore
-    .selectable(onSelectionChange: { handle($0) })             // → SelectableListStore
+    .selectable()                                               // → SelectableListStore
 ```
 
 Each decorator conforms to `ListStateProviding` and delegates to its wrapped store. The fluent API is powered by `ListStoreComposable`, an internal protocol giving decorators access to the root `ListStore`.
@@ -34,7 +34,7 @@ Each decorator conforms to `ListStateProviding` and delegates to its wrapped sto
 
 - **`ListStore<Model, Query, Failure>`** — Core `@Observable` store for async collection loading. Manages state machine (`ListLoadingState`), caching, and cancellation. Delegates to `LoadingEngine`.
 - **`DetailStore<Model, Query, Failure>`** — Single-item counterpart using `LoadingState` (no pagination). Uses `DataLoaderActor` for query-based caching.
-- **Decorator stores** — `SearchableListStore` (debounced text search via `SearchEngine`), `PaginatedListStore` (load-more via `PaginationEngine`), `SelectableListStore` (selection tracking via `SelectionManager`).
+- **Decorator stores** — `SearchableListStore` (debounced text search via `SearchEngine`), `PaginatedListStore` (load-more via `PaginationEngine`), `SelectableListStore` (selection tracking).
 - **Paginators** — `CursorPaginator` (generic cursor-based, supports composite cursors), `OffsetPaginator` (offset-based). Both are actors with caching and local update support via `Difference`.
 - **`Paginated<Item>`** — Wraps items array + optional `loadMore` closure. Conforms to `RandomAccessCollection`.
 
@@ -45,7 +45,7 @@ Protocols are orthogonal traits designed for free composition via conditional co
 - `ListStateProviding` — Base: `state`, `element(at:)`, `load(forceReload:)`
 - `SearchableListProviding` — Adds `search(_:)`, `cancelSearch()`
 - `PaginatedListProviding` — Adds `loadMore()`
-- `SelectableListProviding` — Adds `selection`, `select(_:)`, `canHandleSelection`
+- `SelectableListProviding` — Adds `selection`, `select(_:)`
 
 ### State Machine
 
