@@ -10,7 +10,7 @@ import Foundation
 /// All store types conform: ``ListStore/coreStore`` returns `self`,
 /// wrappers return their base's `coreStore`.
 @MainActor
-protocol ListStoreComposable: ListStateProviding {
+public protocol ListStoreComposable: ListStateProviding {
     associatedtype Query: Sendable & Equatable
     var coreStore: ListStore<Model, Query, Failure> { get }
 }
@@ -18,27 +18,27 @@ protocol ListStoreComposable: ListStateProviding {
 // MARK: - Conformances
 
 extension ListStore: ListStoreComposable {
-    var coreStore: ListStore<Model, Query, Failure> {
+    public var coreStore: ListStore<Model, Query, Failure> {
         self
     }
 }
 
 extension SearchableListStore: ListStoreComposable {
-    var coreStore: ListStore<Model, Query, Failure> {
+    public var coreStore: ListStore<Model, Query, Failure> {
         base
     }
 }
 
 extension PaginatedListStore: ListStoreComposable where Base: ListStoreComposable {
-    typealias Query = Base.Query
-    var coreStore: ListStore<Model, Query, Failure> {
+    public typealias Query = Base.Query
+    public var coreStore: ListStore<Model, Query, Failure> {
         base.coreStore
     }
 }
 
 extension SelectableListStore: ListStoreComposable where Base: ListStoreComposable {
-    typealias Query = Base.Query
-    var coreStore: ListStore<Model, Query, Failure> {
+    public typealias Query = Base.Query
+    public var coreStore: ListStore<Model, Query, Failure> {
         base.coreStore
     }
 }

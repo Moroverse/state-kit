@@ -8,3 +8,10 @@ DerivedData/
 .netrc
 /.vscode/settings.json
 /docs
+
+# Tuist
+*.xcodeproj
+*.xcworkspace
+Derived/
+Tuist/.build
+StateKitDemo/.build

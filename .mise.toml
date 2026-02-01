@@ -1,2 +1,4 @@
 [tools]
 swiftformat = "latest"
+swiftlint = "latest"
+tuist = "latest"
