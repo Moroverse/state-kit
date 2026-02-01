@@ -50,11 +50,13 @@ public final class Cancellable: Hashable, Sendable {
 
 /// Represents the various states of an asynchronous list loading operation.
 ///
-/// `ListLoadingState` is an indirect enum that tracks the progression of loading a collection,
-/// from idle state through loading, completion, or error states.
+/// `ListLoadingState` tracks the progression of loading a collection (list view),
+/// while ``LoadingState`` is its single-model counterpart for detail views.
 ///
-/// The `Failure` generic parameter preserves the concrete error type, following
-/// the `Result<Success, Failure>` pattern.
+/// `ListLoadingState` extends the base pattern with ``LoadMoreState`` in its
+/// `.loaded` case to support pagination — the key reason for keeping these types separate.
+///
+/// Both share the same state machine pattern: `idle → inProgress → loaded | empty | error`.
 ///
 /// ### States:
 ///
@@ -152,13 +154,20 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
     // MARK: - Selection
 
     public var selection: Model.Element.ID? {
-        get { selectionManager.selectedID }
-        set {
-            selectionManager.selectedID = newValue
+        selectionManager.selectedID
+    }
 
-            if case let .loaded(model, _) = state {
-                selectionManager.handleSelection(from: model)
-            }
+    /// Selects the element with the given ID.
+    ///
+    /// If the store is in a `.loaded` state, this also triggers the selection callback
+    /// (if one was provided at initialization).
+    ///
+    /// - Parameter id: The ID of the element to select, or `nil` to clear the selection.
+    public func select(_ id: Model.Element.ID?) {
+        selectionManager.selectedID = id
+
+        if case let .loaded(model, _) = state {
+            selectionManager.handleSelection(from: model)
         }
     }
 
@@ -225,7 +234,7 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         )
 
         self.selectionManager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
-        self.selection = selection
+        self.selectionManager.selectedID = selection
 
         self.searchEngine.loadModel = { [weak self] query, forceReload in
             guard let self else { throw SearchEngine<Model, Query, Failure>.SearchEngineError.instanceDeallocated }

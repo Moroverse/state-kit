@@ -5,11 +5,11 @@
 /// Represents changes to be applied to the cached collection.
 public struct Difference<Element: Identifiable> {
     /// New elements to be added to the collection.
-    let insertions: [Element]
+    public let insertions: [Element]
     /// IDs of elements to be removed from the collection.
-    let deletions: [Element.ID]
+    public let deletions: [Element.ID]
     /// Elements to be updated in the collection.
-    let updates: [Element]
+    public let updates: [Element]
 
     /// Initializes a new difference with insertions, deletions, and updates.
     ///

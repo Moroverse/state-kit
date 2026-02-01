@@ -369,7 +369,7 @@ struct ListStoreTests {
             .success(items)
         }
 
-        sut.selection = "2"
+        sut.select("2")
         #expect(selectedItem == items[1])
     }
 
@@ -397,7 +397,7 @@ struct ListStoreTests {
             .success(items)
         }
 
-        sut.selection = "99" // ID that doesn't exist
+        sut.select("99") // ID that doesn't exist
         #expect(callbackTriggered == false)
         #expect(selectedItem == nil)
     }
@@ -414,7 +414,7 @@ struct ListStoreTests {
         )
 
         // State is .idle, not .loaded
-        sut.selection = "1"
+        sut.select("1")
         #expect(callbackTriggered == false)
         #expect(selectedItem == nil)
     }
@@ -425,10 +425,10 @@ struct ListStoreTests {
 
         #expect(sut.selection == nil)
 
-        sut.selection = "test-id"
+        sut.select("test-id")
         #expect(sut.selection == "test-id")
 
-        sut.selection = "different-id"
+        sut.select("different-id")
         #expect(sut.selection == "different-id")
     }
 
@@ -473,7 +473,7 @@ struct ListStoreTests {
         }
 
         // Try to select from empty collection
-        sut.selection = "1"
+        sut.select("1")
         #expect(callbackTriggered == false)
         #expect(selectedItem == nil)
         #expect(sut.selection == "1") // Selection property should still be set
@@ -505,10 +505,10 @@ struct ListStoreTests {
         }
 
         // Multiple rapid selection changes
-        sut.selection = "1"
-        sut.selection = "2"
-        sut.selection = "3"
-        sut.selection = "1"
+        sut.select("1")
+        sut.select("2")
+        sut.select("3")
+        sut.select("1")
 
         #expect(selectedItems.count == 4)
         #expect(selectedItems[0] == items[0]) // First selection: Item 1
@@ -546,7 +546,7 @@ struct ListStoreTests {
             .success(initialItems)
         }
 
-        sut.selection = "1"
+        sut.select("1")
         #expect(callbackCount == 1)
         #expect(sut.selection == "1")
 
@@ -603,14 +603,14 @@ struct ListStoreTests {
         }
 
         // Select item from initial paginated results
-        sut.selection = "1"
+        sut.select("1")
         #expect(selectedItem?.name == "Item 1")
 
         // Load more data
         try await sut.loadMore()
 
         // Select item that exists in paginated results
-        sut.selection = "2"
+        sut.select("2")
         #expect(selectedItem?.name == "Item 2")
         #expect(sut.selection == "2")
     }

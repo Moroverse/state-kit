@@ -7,8 +7,15 @@
 /// Both `CursorPaginator` (actor) and `MainActorCursorPaginator` (@MainActor class) use this
 /// to construct `Paginated` results, eliminating duplication of the page-building logic.
 enum CursorPaginatorPage {
-    enum Error: Swift.Error {
+    enum Error: Swift.Error, CustomStringConvertible {
         case paginatorDeallocated
+
+        var description: String {
+            switch self {
+            case .paginatorDeallocated:
+                "CursorPaginator was deallocated before loadMore could complete"
+            }
+        }
     }
 
     static func makePage<Element: Identifiable & Sendable, Query: Hashable & Sendable, Cursor: Hashable & Sendable>(

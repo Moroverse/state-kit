@@ -3,7 +3,16 @@
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 actor OffsetPaginationCache<Element, Key: Hashable & Sendable> where Element: Identifiable & Sendable, Element.ID: Sendable {
+
+    struct CacheState {
+        let key: Key
+        let offset: Int
+        let hasMore: Bool
+        let elements: [Element]
+    }
+
     private var cache: [Element] = []
+    private var idIndex: [Element.ID: Int] = [:]
     private var key: Key?
     private var offset: Int = 0
     private var hasMore: Bool = true
@@ -23,31 +32,42 @@ actor OffsetPaginationCache<Element, Key: Hashable & Sendable> where Element: Id
         }
         self.offset = offset
         self.hasMore = hasMore
+        rebuildIndex()
         return cache
     }
 
     @discardableResult
     func updateCache(
         differenceBuilder: (_ cache: [Element]) -> Difference<Element>
-    ) -> (key: Key, offset: Int, hasMore: Bool, elements: [Element])? { // swiftlint:disable:this large_tuple
+    ) -> CacheState? {
         guard let key else { return nil }
 
         let difference = differenceBuilder(cache)
-        for deletion in difference.deletions {
-            cache.removeAll { $0.id == deletion }
+
+        let deletionIndices = difference.deletions
+            .compactMap { idIndex[$0] }
+            .sorted(by: >)
+        for index in deletionIndices {
+            cache.remove(at: index)
+        }
+
+        // Rebuild after deletions shifted indices
+        if !deletionIndices.isEmpty {
+            rebuildIndex()
         }
 
         for update in difference.updates {
-            if let index = cache.firstIndex(where: { $0.id == update.id }) {
+            if let index = idIndex[update.id] {
                 cache[index] = update
             }
         }
 
         for insertion in difference.insertions {
+            idIndex[insertion.id] = cache.count
             cache.append(insertion)
         }
 
-        return (key, offset, hasMore, cache)
+        return CacheState(key: key, offset: offset, hasMore: hasMore, elements: cache)
     }
 
     var currentOffset: Int {
@@ -55,6 +75,11 @@ actor OffsetPaginationCache<Element, Key: Hashable & Sendable> where Element: Id
     }
 
     func cachedElement(with id: Element.ID) -> Element? {
-        cache.first(where: { $0.id == id })
+        guard let index = idIndex[id] else { return nil }
+        return cache[index]
+    }
+
+    private func rebuildIndex() {
+        idIndex = Dictionary(uniqueKeysWithValues: cache.enumerated().map { ($1.id, $0) })
     }
 }

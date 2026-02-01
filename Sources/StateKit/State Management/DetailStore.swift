@@ -8,9 +8,11 @@ import Observation
 /**
  Represents the various states of an asynchronous loading operation for a single model.
 
- `LoadingState` is an indirect enum that tracks the progression of loading a model,
- from idle state through loading, completion, or error states. The enum maintains
- previous states to allow for proper state transitions and recovery.
+ `LoadingState` tracks the progression of loading a single model (detail view),
+ while ``ListLoadingState`` is its collection-oriented counterpart that additionally
+ carries ``LoadMoreState`` for pagination.
+
+ Both share the same state machine pattern: `idle → inProgress → loaded | empty | error`.
 
  ### States:
 
@@ -30,8 +32,8 @@ public indirect enum LoadingState<Model, Failure: Error> {
     ///
     /// - Parameters:
     ///   - label: A localized string resource describing the empty state (e.g., "No results")
-    ///   - image: A system image name to display alongside the empty state message
-    case empty(label: LocalizedStringResource, image: String)
+    ///   - image: An image source to display alongside the empty state message
+    case empty(label: LocalizedStringResource, image: ImageSource)
 
     /// The loading state when an asynchronous operation is in progress.
     ///
@@ -77,8 +79,7 @@ extension LoadingState: Equatable where Model: Equatable, Failure: Equatable {}
 public class DetailStore<Model, Query, Failure: Error> where Model: Sendable, Query: Sendable & Equatable {
     public var state: LoadingState<Model, Failure>
 
-    private let emptyContentLabel: LocalizedStringResource
-    private let emptyContentImageResource: String
+    private let emptyStateConfiguration: EmptyStateConfiguration
     private let loader: DataLoader<Query, Model>
     @ObservationIgnored
     private var queryProvider: QueryProvider<Query>
@@ -91,19 +92,16 @@ public class DetailStore<Model, Query, Failure: Error> where Model: Sendable, Qu
      Initializes a new instance of `DetailStore`.
 
      - Parameters:
-       - emptyContentLabel: A localized label for the empty state. Default is "No results".
-       - emptyContentImageResource: A system image name for the empty state. Default is "magnifyingglass".
+       - emptyStateConfiguration: Configuration for empty state labels and images. Default is `.default`.
        - loader: A closure responsible for loading a single model asynchronously based on a query.
        - queryProvider: A closure responsible for providing the query to load the single model asynchronously.
      */
     public init(
-        emptyContentLabel: LocalizedStringResource = "No results",
-        emptyContentImageResource: String = "magnifyingglass",
+        emptyStateConfiguration: EmptyStateConfiguration = .default,
         loader: @escaping DataLoader<Query, Model>,
         queryProvider: @escaping QueryProvider<Query>
     ) {
-        self.emptyContentLabel = emptyContentLabel
-        self.emptyContentImageResource = emptyContentImageResource
+        self.emptyStateConfiguration = emptyStateConfiguration
         self.state = .idle
         self.loader = loader
         self.queryProvider = queryProvider
@@ -165,7 +163,7 @@ public class DetailStore<Model, Query, Failure: Error> where Model: Sendable, Qu
             return model
         } catch {
             currentTask = nil
-            state = .empty(label: emptyContentLabel, image: emptyContentImageResource)
+            state = .empty(label: emptyStateConfiguration.label, image: emptyStateConfiguration.image)
             cachedQuery = nil
             throw error
         }

@@ -13,8 +13,15 @@ import Foundation
 final class SearchEngine<Model: RandomAccessCollection, Query: Sendable & Equatable, Failure: Error>
     where Model: Sendable, Model.Element: Identifiable & Sendable {
 
-    enum SearchEngineError: LocalizedError {
+    enum SearchEngineError: LocalizedError, CustomStringConvertible {
         case instanceDeallocated
+
+        var description: String {
+            switch self {
+            case .instanceDeallocated:
+                "SearchEngine's owning ListStore was deallocated"
+            }
+        }
     }
 
     private(set) var latestQueryString = ""

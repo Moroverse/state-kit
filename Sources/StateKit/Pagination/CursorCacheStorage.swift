@@ -8,6 +8,7 @@
 /// delegate to this type for all data operations. Isolation is provided by the wrapper.
 final class CursorCacheStorage<Element: Identifiable, Key: Hashable, Cursor: Hashable> {
     private var cache: [Element] = []
+    private var idIndex: [Element.ID: Int] = [:]
     private var key: Key?
     private(set) var lastCursor: Cursor?
 
@@ -24,6 +25,7 @@ final class CursorCacheStorage<Element: Identifiable, Key: Hashable, Cursor: Has
             cache += elements
         }
         self.lastCursor = lastCursor
+        rebuildIndex()
         return cache
     }
 
@@ -34,17 +36,27 @@ final class CursorCacheStorage<Element: Identifiable, Key: Hashable, Cursor: Has
         guard let key else { return nil }
 
         let difference = differenceBuilder(cache)
-        for deletion in difference.deletions {
-            cache.removeAll { $0.id == deletion }
+
+        let deletionIndices = difference.deletions
+            .compactMap { idIndex[$0] }
+            .sorted(by: >)
+        for index in deletionIndices {
+            cache.remove(at: index)
+        }
+
+        // Rebuild after deletions shifted indices
+        if !deletionIndices.isEmpty {
+            rebuildIndex()
         }
 
         for update in difference.updates {
-            if let index = cache.firstIndex(where: { $0.id == update.id }) {
+            if let index = idIndex[update.id] {
                 cache[index] = update
             }
         }
 
         for insertion in difference.insertions {
+            idIndex[insertion.id] = cache.count
             cache.append(insertion)
         }
 
@@ -52,7 +64,12 @@ final class CursorCacheStorage<Element: Identifiable, Key: Hashable, Cursor: Has
     }
 
     func cachedElement(with id: Element.ID) -> Element? {
-        cache.first(where: { $0.id == id })
+        guard let index = idIndex[id] else { return nil }
+        return cache[index]
+    }
+
+    private func rebuildIndex() {
+        idIndex = Dictionary(uniqueKeysWithValues: cache.enumerated().map { ($1.id, $0) })
     }
 }
 

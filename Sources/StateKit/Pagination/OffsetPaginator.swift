@@ -16,8 +16,15 @@ public actor OffsetPaginator<Element, Query: Hashable & Sendable> where Element:
     /// - Throws: Any error that might occur during the remote loading process
     public typealias RemoteLoader = @Sendable (Query, Int) async throws -> (elements: [Element], hasNextPage: Bool)
 
-    enum Error: Swift.Error {
-        case invalidInstance
+    enum Error: Swift.Error, CustomStringConvertible {
+        case paginatorDeallocated
+
+        var description: String {
+            switch self {
+            case .paginatorDeallocated:
+                "OffsetPaginator was deallocated before loadMore could complete"
+            }
+        }
     }
 
     private let remoteLoader: RemoteLoader
@@ -90,7 +97,7 @@ public actor OffsetPaginator<Element, Query: Hashable & Sendable> where Element:
                 items: elements,
                 loadMore: { [weak self] in
                     guard let self else {
-                        throw Error.invalidInstance
+                        throw Error.paginatorDeallocated
                     }
                     let currentOffset = await cache.currentOffset
                     return try await loadMore(query: query, offset: currentOffset)

@@ -66,7 +66,8 @@ public protocol SearchableListProviding: ListStateProviding {
 /// Combine with other protocols as needed: `SelectableListProviding & PaginatedListProviding`.
 @MainActor
 public protocol SelectableListProviding: ListStateProviding {
-    var selection: Model.Element.ID? { get set }
+    var selection: Model.Element.ID? { get }
+    func select(_ id: Model.Element.ID?)
     var canHandleSelection: Bool { get }
 }
 
