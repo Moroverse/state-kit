@@ -256,7 +256,7 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         loadingConfiguration: LoadingConfiguration = .default,
         emptyStateConfiguration: EmptyStateConfiguration = .default,
         loader: @escaping DataLoader<Query, Model>,
-        queryFactory: @escaping QueryFactory<Query>,
+        queryFactory: @escaping QueryProvider<Query>,
         onSelectionChange: ((Model.Element?) -> Void)? = nil
     ) {
         self.init(

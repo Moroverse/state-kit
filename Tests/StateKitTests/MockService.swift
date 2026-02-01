@@ -2,17 +2,17 @@
 // Copyright (c) 2025 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
-public actor MockService<T> where T: Sendable {
+actor MockService<T> where T: Sendable {
     let result: Result<T, Error>
     let delay: Duration?
 
-    public init(result: Result<T, Error>, delay: Duration? = nil) {
+    init(result: Result<T, Error>, delay: Duration? = nil) {
         self.result = result
         self.delay = delay
     }
 
     @Sendable
-    public func perform() async throws -> T {
+    func perform() async throws -> T {
         if let delay {
             try await Task.sleep(for: delay)
         }

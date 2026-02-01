@@ -9,8 +9,5 @@ public typealias DataLoader<Query, Model> = @Sendable (Query) async throws -> Mo
 /// A closure type for building a query from a search string.
 public typealias QueryBuilder<Query> = (String) throws -> Query
 
-/// A closure type for providing a query without search string input.
-public typealias QueryFactory<Query> = () throws -> Query
-
-/// A closure type for providing a query.
-public typealias QueryProvider<Query> = () -> Query
+/// A closure type for providing a query without external input.
+public typealias QueryProvider<Query> = () throws -> Query

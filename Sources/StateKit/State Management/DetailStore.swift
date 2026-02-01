@@ -127,7 +127,7 @@ public class DetailStore<Model, Query, Failure: Error> where Model: Sendable, Qu
     }
 
     func loadModel(oldState: LoadingState<Model, Failure>) async throws -> Model {
-        let query = queryProvider()
+        let query = try queryProvider()
         if let cachedQuery, cachedQuery == query {
             switch state {
             case let .loaded(model):

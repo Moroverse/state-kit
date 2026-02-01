@@ -43,7 +43,7 @@ public final class BasicListStore<Model: RandomAccessCollection, Query: Sendable
     private var loadingEngine: LoadingEngine<Model, Query, Failure>
 
     @ObservationIgnored
-    private let queryFactory: QueryFactory<Query>
+    private let queryFactory: QueryProvider<Query>
 
     /**
      Initializes a new instance of `BasicListStore`.
@@ -56,7 +56,7 @@ public final class BasicListStore<Model: RandomAccessCollection, Query: Sendable
     public init(
         emptyStateConfiguration: EmptyStateConfiguration = .default,
         loader: @escaping DataLoader<Query, Model>,
-        queryFactory: @escaping QueryFactory<Query>
+        queryFactory: @escaping QueryProvider<Query>
     ) {
         self.state = .idle
         self.queryFactory = queryFactory
