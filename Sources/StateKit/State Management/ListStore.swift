@@ -116,10 +116,12 @@ public enum LoadMoreState<Model> where Model: RandomAccessCollection {
 extension LoadMoreState: Equatable {}
 
 /**
- A store for managing asynchronous loading and state management of a collection based on a query.
+ A full-featured store for managing asynchronous loading, debounced search, pagination,
+ and optional selection for a collection of items.
 
- `ListStore` is an `@Observable` class that manages the loading state, debounced search,
- query caching, pagination, and optional selection for a collection of items.
+ `ListStore` conforms to `PaginatedListProviding`, `SearchableListProviding`, and
+ `SelectableListProviding`. For a simpler store without search, pagination, or selection,
+ see ``BasicListStore``.
 
  ### Type Parameters:
 
@@ -144,14 +146,11 @@ extension LoadMoreState: Equatable {}
 @Observable
 public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Failure: Error>
     where Model: Sendable, Query: Sendable & Equatable, Model.Element: Identifiable, Model.Element: Sendable {
-    enum ListStoreError: LocalizedError {
-        case invalidModel
-        case instanceDeallocated
-    }
 
     public var state: ListLoadingState<Model, Failure>
 
-    private let emptyStateConfiguration: EmptyStateConfiguration
+    // MARK: - Selection
+
     public var selection: Model.Element.ID? {
         get { selectionManager.selectedID }
         set {
@@ -167,31 +166,25 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         selectionManager.canHandleSelection
     }
 
-    private var selectionManager: any SelectionManager<Model.Element>
-    private let loader: DataLoader<Query, Model>
-    @ObservationIgnored
-    private lazy var loadModelDebounce: Debounce<Query, Bool, Model> = Debounce(
-        call: { @Sendable [weak self] query, forceReload in
-            guard let self else {
-                throw ListStoreError.instanceDeallocated
-            }
-            return try await loadModel(query: query, forceReload: forceReload)
-        },
-        after: loadingConfiguration.debounceDelay,
-        clock: loadingConfiguration.clock
-    )
+    // MARK: - Engines
 
-    private var queryBuilder: QueryBuilder<Query>
     @ObservationIgnored
-    private var cachedQuery: Query?
+    private var loadingEngine: LoadingEngine<Model, Query, Failure>
+
     @ObservationIgnored
-    private var latestQueryString = ""
+    private var paginationEngine: PaginationEngine<Model, Failure>
+
     @ObservationIgnored
-    private let loadingConfiguration: LoadingConfiguration
+    private var searchEngine: SearchEngine<Model, Query, Failure>
+
+    // MARK: - Selection
+
+    private var selectionManager: any SelectionManager<Model.Element>
+
+    // MARK: - Configuration
+
     @ObservationIgnored
-    private var currentTask: Task<Model, Error>?
-    @ObservationIgnored
-    private var loadMoreTask: Task<Model, Error>?
+    private let emptyStateConfiguration: EmptyStateConfiguration
 
     /**
      Initializes a new instance of `ListStore`.
@@ -212,13 +205,45 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         queryBuilder: @escaping QueryBuilder<Query>,
         onSelectionChange: ((Model.Element?) -> Void)? = nil
     ) {
-        self.loadingConfiguration = loadingConfiguration
         self.emptyStateConfiguration = emptyStateConfiguration
-        state = .idle
-        self.loader = loader
-        self.queryBuilder = queryBuilder
-        selectionManager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
+        self.state = .idle
+
+        let paginationEngine = PaginationEngine<Model, Failure>(
+            emptyStateConfiguration: emptyStateConfiguration
+        )
+        self.paginationEngine = paginationEngine
+
+        self.loadingEngine = LoadingEngine(
+            loader: loader,
+            emptyStateConfiguration: emptyStateConfiguration,
+            loadMoreStateResolver: paginationEngine.loadMoreState
+        )
+
+        // SearchEngine needs a reference to loadModel, which is on self.
+        // We initialize with a placeholder and then set it up after init.
+        self.searchEngine = SearchEngine(
+            queryBuilder: queryBuilder,
+            loadingConfiguration: loadingConfiguration,
+            loadModel: { _, _ in fatalError("SearchEngine loadModel not yet configured") }
+        )
+
+        self.selectionManager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
         self.selection = selection
+
+        // Now wire up the search engine's loadModel closure to self
+        self.searchEngine = SearchEngine(
+            queryBuilder: queryBuilder,
+            loadingConfiguration: loadingConfiguration,
+            loadModel: { [weak self] query, forceReload in
+                guard let self else { throw SearchEngine<Model, Query, Failure>.SearchEngineError.instanceDeallocated }
+                return try await self.loadingEngine.loadModel(
+                    query: query,
+                    forceReload: forceReload,
+                    currentState: self.state,
+                    setState: { self.state = $0 }
+                )
+            }
+        )
     }
 
     /**
@@ -234,7 +259,7 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
        - queryFactory: A closure responsible for constructing a query without a search string input.
        - onSelectionChange: An optional callback triggered when selection changes.
      */
-    public init(
+    public convenience init(
         selection: Model.Element.ID? = nil,
         loadingConfiguration: LoadingConfiguration = .default,
         emptyStateConfiguration: EmptyStateConfiguration = .default,
@@ -242,20 +267,23 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         queryFactory: @escaping QueryFactory<Query>,
         onSelectionChange: ((Model.Element?) -> Void)? = nil
     ) {
-        self.loadingConfiguration = loadingConfiguration
-        self.emptyStateConfiguration = emptyStateConfiguration
-        state = .idle
-        self.loader = loader
-        self.queryBuilder = { _ in try queryFactory() }
-        selectionManager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
-        self.selection = selection
+        self.init(
+            selection: selection,
+            loadingConfiguration: loadingConfiguration,
+            emptyStateConfiguration: emptyStateConfiguration,
+            loader: loader,
+            queryBuilder: { _ in try queryFactory() },
+            onSelectionChange: onSelectionChange
+        )
     }
+
+    // MARK: - Loading
 
     /// Updates the query builder closure used to construct queries from search strings.
     ///
     /// - Parameter builder: The new query builder closure.
     public func updateQueryBuilder(_ builder: @escaping QueryBuilder<Query>) {
-        self.queryBuilder = builder
+        searchEngine.updateQueryBuilder(builder)
     }
 
     /**
@@ -265,11 +293,8 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
      */
     public func load(forceReload: Bool = false) async {
         do {
-            let query = try queryBuilder(latestQueryString)
-            await load(
-                query: query,
-                forceReload: forceReload
-            )
+            let query = try searchEngine.buildQuery()
+            await load(query: query, forceReload: forceReload)
         } catch {
             if let failure = error as? Failure {
                 state = .error(failure, previousState: state)
@@ -286,7 +311,7 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
      */
     public func load(query: Query, forceReload: Bool = false) async {
         do {
-            _ = try await loadModelDebounce(query, forceReload)
+            _ = try await searchEngine.debouncedLoad(query: query, forceReload: forceReload)
         } catch is CancellationError {
         } catch {
             if let failure = error as? Failure {
@@ -297,118 +322,25 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
 
     @discardableResult
     public func loadModel(query: Query, forceReload: Bool = false) async throws -> Model {
-        if !forceReload, let cachedQuery, cachedQuery == query {
-            switch state {
-            case let .loaded(model, _):
-                return model
-
-            case .inProgress:
-                if let currentTask {
-                    return try await currentTask.value
-                }
-
-            default:
-                break
-            }
-        }
-
-        let oldState = state
-
-        let task = Task {
-            try Task.checkCancellation()
-            let model = try await loader(query)
-            try Task.checkCancellation()
-            return model
-        }
-
-        currentTask = task
-        cachedQuery = query
-        let cancellable = Cancellable { task.cancel() }
-        state = .inProgress(cancellable, previousState: oldState)
-
-        do {
-            let model = try await task.value
-            currentTask = nil
-            if Task.isCancelled {
-                throw CancellationError()
-            }
-            if model.isEmpty {
-                state = .empty(label: emptyStateConfiguration.label, image: emptyStateConfiguration.image)
-            } else {
-                state = .loaded(model, loadMoreState: loadMoreState(for: model))
-            }
-            return model
-        } catch let error as CancellationError {
-            currentTask = nil
-            state = oldState
-            throw error
-        } catch {
-            currentTask = nil
-            state = oldState
-            cachedQuery = nil
-            throw error
-        }
+        try await loadingEngine.loadModel(
+            query: query,
+            forceReload: forceReload,
+            currentState: state,
+            setState: { self.state = $0 }
+        )
     }
+
+    // MARK: - Pagination
 
     public func loadMore() async throws {
-        switch state {
-        case let .loaded(model, loadMoreState):
-            switch loadMoreState {
-            case .ready:
-                if let paginated = model as? Paginated<Model.Element>,
-                   let paginatedLoadMore = paginated.loadMore {
-                    let action: @Sendable () async throws -> Model = {
-                        do {
-                            let result = try await paginatedLoadMore()
-                            guard let typedResult = result as? Model else {
-                                throw ListStoreError.invalidModel
-                            }
-                            return typedResult
-                        } catch {
-                            throw error
-                        }
-                    }
-                    try await perform(action: action)
-                }
-
-            case .inProgress:
-                if let loadMoreTask {
-                    _ = try await loadMoreTask.value
-                }
-
-            default:
-                break
-            }
-
-        default:
-            break
-        }
+        try await paginationEngine.loadMore(
+            currentState: state,
+            setState: { self.state = $0 },
+            invalidateCache: { self.loadingEngine.invalidateCache() }
+        )
     }
 
-    private func perform(action: @escaping @Sendable () async throws -> Model) async throws {
-        guard case let .loaded(model, _) = state else {
-            return
-        }
-
-        let task = Task {
-            try await action()
-        }
-
-        loadMoreTask = task
-        let cancellable = Cancellable { task.cancel() }
-        state = .loaded(model, loadMoreState: .inProgress(cancellable))
-
-        do {
-            let model = try await task.value
-            loadMoreTask = nil
-            state = .loaded(model, loadMoreState: loadMoreState(for: model))
-        } catch {
-            loadMoreTask = nil
-            state = .empty(label: emptyStateConfiguration.label, image: emptyStateConfiguration.image)
-            cachedQuery = nil
-            throw error
-        }
-    }
+    // MARK: - Search
 
     /**
      Initiates a search asynchronously based on the provided query string.
@@ -416,9 +348,9 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
      - Parameter query: The search query string to perform.
      */
     public func search(_ query: String) async {
-        latestQueryString = query
+        searchEngine.updateQueryString(query)
         do {
-            let query = try queryBuilder(latestQueryString)
+            let query = try searchEngine.buildQuery()
             await load(query: query)
         } catch {
             if let failure = error as? Failure {
@@ -426,6 +358,17 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
             }
         }
     }
+
+    /**
+     Cancels any ongoing search or load operations.
+     */
+    public func cancelSearch() async {
+        if case let .inProgress(cancellable, _) = state {
+            cancellable.cancel()
+        }
+    }
+
+    // MARK: - Element Access
 
     /**
      Retrieves the model element at the specified index.
@@ -441,23 +384,5 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
         }
 
         return nil
-    }
-
-    /**
-     Cancels any ongoing search or load operations.
-     */
-    public func cancelSearch() async {
-        if case let .inProgress(cancellable, _) = state {
-            cancellable.cancel()
-        }
-    }
-
-    private func loadMoreState(for model: Model) -> LoadMoreState<Model> {
-        if let paginated = model as? Paginated<Model.Element>,
-           paginated.loadMore != nil {
-            .ready
-        } else {
-            .unavailable
-        }
     }
 }

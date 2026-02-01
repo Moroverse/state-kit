@@ -6,9 +6,11 @@ import Foundation
 
 /// Protocol defining the observable state interface for list views.
 ///
-/// Views should depend on this protocol rather than concrete `ListStore`,
-/// enabling ViewModels to provide list state without inheriting all of
-/// `ListStore`'s features (pagination, selection, debouncing, etc.).
+/// Views should depend on this protocol rather than concrete store types,
+/// enabling ViewModels to provide list state without requiring pagination,
+/// search, or selection capabilities.
+///
+/// Both ``BasicListStore`` and ``ListStore`` conform to this protocol.
 ///
 /// ### Usage Example:
 ///
@@ -35,20 +37,28 @@ public protocol ListStateProviding<Model, Failure>: AnyObject, Observable {
 
     var state: ListLoadingState<Model, Failure> { get }
     func load(forceReload: Bool) async
-    func loadMore() async throws
     func element(at index: Int) -> Model.Element?
+}
+
+/// Protocol for list providers that support pagination (load-more).
+///
+/// Extends ``ListStateProviding`` with `loadMore()` for paginated collections.
+/// ``ListStore`` conforms to this protocol; ``BasicListStore`` does not.
+@MainActor
+public protocol PaginatedListProviding: ListStateProviding {
+    func loadMore() async throws
 }
 
 /// Protocol for list providers that support text search with debouncing.
 @MainActor
-public protocol SearchableListProviding: ListStateProviding {
+public protocol SearchableListProviding: PaginatedListProviding {
     func search(_ query: String) async
     func cancelSearch() async
 }
 
 /// Protocol for list providers that support item selection.
 @MainActor
-public protocol SelectableListProviding: ListStateProviding {
+public protocol SelectableListProviding: PaginatedListProviding {
     var selection: Model.Element.ID? { get set }
     var canHandleSelection: Bool { get }
 }
@@ -56,5 +66,6 @@ public protocol SelectableListProviding: ListStateProviding {
 // MARK: - ListStore Conformances
 
 extension ListStore: ListStateProviding {}
+extension ListStore: PaginatedListProviding {}
 extension ListStore: SearchableListProviding {}
 extension ListStore: SelectableListProviding {}
