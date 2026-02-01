@@ -24,7 +24,7 @@ final class SearchEngine<Model: RandomAccessCollection, Query: Sendable & Equata
     private var _debounce: Debounce<Query, Bool, Model>?
 
     private let loadingConfiguration: LoadingConfiguration
-    private let loadModel: @MainActor @Sendable (Query, Bool) async throws -> Model
+    var loadModel: @MainActor @Sendable (Query, Bool) async throws -> Model
 
     init(
         queryBuilder: @escaping QueryBuilder<Query>,
@@ -34,6 +34,17 @@ final class SearchEngine<Model: RandomAccessCollection, Query: Sendable & Equata
         self.queryBuilder = queryBuilder
         self.loadingConfiguration = loadingConfiguration
         self.loadModel = loadModel
+    }
+
+    init(
+        queryBuilder: @escaping QueryBuilder<Query>,
+        loadingConfiguration: LoadingConfiguration
+    ) {
+        self.queryBuilder = queryBuilder
+        self.loadingConfiguration = loadingConfiguration
+        self.loadModel = { _, _ in
+            preconditionFailure("SearchEngine.loadModel must be configured before use")
+        }
     }
 
     /// Builds a query from the current `latestQueryString`.

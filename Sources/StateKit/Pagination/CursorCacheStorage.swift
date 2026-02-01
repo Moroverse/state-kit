@@ -1,18 +1,20 @@
-// OffsetPaginatorCache.swift
+// CursorCacheStorage.swift
 // Copyright (c) 2025 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
-actor OffsetPaginationCache<Element, Key: Hashable & Sendable> where Element: Identifiable & Sendable, Element.ID: Sendable {
+/// Shared, non-isolated storage for cursor-based pagination caches.
+///
+/// Both `CursorPaginationCache` (actor) and `MainActorCursorPaginationCache` (@MainActor class)
+/// delegate to this type for all data operations. Isolation is provided by the wrapper.
+final class CursorCacheStorage<Element: Identifiable, Key: Hashable, Cursor: Hashable> {
     private var cache: [Element] = []
     private var key: Key?
-    private var offset: Int = 0
-    private var hasMore: Bool = true
+    private(set) var lastCursor: Cursor?
 
     @discardableResult
     func updateCache(
         key: Key,
-        offset: Int,
-        hasMore: Bool,
+        lastCursor: Cursor?,
         elements: [Element]
     ) -> [Element] {
         if self.key != key {
@@ -21,15 +23,14 @@ actor OffsetPaginationCache<Element, Key: Hashable & Sendable> where Element: Id
         } else {
             cache += elements
         }
-        self.offset = offset
-        self.hasMore = hasMore
+        self.lastCursor = lastCursor
         return cache
     }
 
     @discardableResult
     func updateCache(
         differenceBuilder: (_ cache: [Element]) -> Difference<Element>
-    ) -> (key: Key, offset: Int, hasMore: Bool, elements: [Element])? { // swiftlint:disable:this large_tuple
+    ) -> (key: Key, lastCursor: Cursor?, elements: [Element])? {
         guard let key else { return nil }
 
         let difference = differenceBuilder(cache)
@@ -47,14 +48,12 @@ actor OffsetPaginationCache<Element, Key: Hashable & Sendable> where Element: Id
             cache.append(insertion)
         }
 
-        return (key, offset, hasMore, cache)
-    }
-
-    var currentOffset: Int {
-        offset
+        return (key, lastCursor, cache)
     }
 
     func cachedElement(with id: Element.ID) -> Element? {
         cache.first(where: { $0.id == id })
     }
 }
+
+extension CursorCacheStorage: @unchecked Sendable where Element: Sendable, Key: Sendable, Cursor: Sendable {}

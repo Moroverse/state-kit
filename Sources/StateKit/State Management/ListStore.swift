@@ -219,31 +219,23 @@ public final class ListStore<Model: RandomAccessCollection, Query: Sendable, Fai
             loadMoreStateResolver: paginationEngine.loadMoreState
         )
 
-        // SearchEngine needs a reference to loadModel, which is on self.
-        // We initialize with a placeholder and then set it up after init.
         self.searchEngine = SearchEngine(
             queryBuilder: queryBuilder,
-            loadingConfiguration: loadingConfiguration,
-            loadModel: { _, _ in fatalError("SearchEngine loadModel not yet configured") }
+            loadingConfiguration: loadingConfiguration
         )
 
         self.selectionManager = CallbackSelectionManager(onSelectionChange: onSelectionChange)
         self.selection = selection
 
-        // Now wire up the search engine's loadModel closure to self
-        self.searchEngine = SearchEngine(
-            queryBuilder: queryBuilder,
-            loadingConfiguration: loadingConfiguration,
-            loadModel: { [weak self] query, forceReload in
-                guard let self else { throw SearchEngine<Model, Query, Failure>.SearchEngineError.instanceDeallocated }
-                return try await self.loadingEngine.loadModel(
-                    query: query,
-                    forceReload: forceReload,
-                    currentState: self.state,
-                    setState: { self.state = $0 }
-                )
-            }
-        )
+        self.searchEngine.loadModel = { [weak self] query, forceReload in
+            guard let self else { throw SearchEngine<Model, Query, Failure>.SearchEngineError.instanceDeallocated }
+            return try await self.loadingEngine.loadModel(
+                query: query,
+                forceReload: forceReload,
+                currentState: self.state,
+                setState: { self.state = $0 }
+            )
+        }
     }
 
     /**

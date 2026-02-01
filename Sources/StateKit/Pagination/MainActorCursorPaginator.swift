@@ -3,7 +3,7 @@
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 /**
- A MainActor-isolated cursor-based paginator for UI integration with non-Sendable elements.
+ A MainActor-isolated cursor-based paginator for UI integration.
 
  `MainActorCursorPaginator` is the MainActor equivalent of `CursorPaginator`, designed for:
  - Direct UI integration without async overhead
@@ -70,7 +70,7 @@
  - Note: The `Cursor` type must conform to `Hashable`. `Element` must conform to `Sendable`.
  */
 @MainActor
-public final class MainActorCursorPaginator<Element, Query: Hashable, Cursor: Hashable> where Element: Identifiable & Sendable {
+public final class MainActorCursorPaginator<Element, Query: Hashable & Sendable, Cursor: Hashable & Sendable> where Element: Identifiable & Sendable {
     /// A function type that loads elements from a remote source.
     ///
     /// - Parameters:
@@ -83,10 +83,6 @@ public final class MainActorCursorPaginator<Element, Query: Hashable, Cursor: Ha
     ///
     /// - Throws: Any error that might occur during the remote loading process
     public typealias RemoteLoader = @MainActor (Query, Cursor?) async throws -> (elements: [Element], lastCursor: Cursor?)
-
-    enum Error: Swift.Error {
-        case invalidInstance
-    }
 
     private let cache: MainActorCursorPaginationCache<Element, Query, Cursor>
     private let remoteLoader: RemoteLoader
@@ -169,13 +165,13 @@ public final class MainActorCursorPaginator<Element, Query: Hashable, Cursor: Ha
         return asyncSubject.stream()
     }
 
-    private func makeRemoteLoadMoreLoader(
+    private func loadMorePage(
         query: Query,
         lastCursor: Cursor
     ) async throws -> Paginated<Element> {
-        let (elements, lastID) = try await remoteLoader(query, lastCursor)
-        let latestCache = cache.updateCache(key: query, lastCursor: lastID, elements: elements)
-        return makePage(query: query, lastCursor: lastID, items: latestCache)
+        let (elements, newCursor) = try await remoteLoader(query, lastCursor)
+        let latestCache = cache.updateCache(key: query, lastCursor: newCursor, elements: elements)
+        return makePage(query: query, lastCursor: newCursor, items: latestCache)
     }
 
     private func makePage(
@@ -183,21 +179,13 @@ public final class MainActorCursorPaginator<Element, Query: Hashable, Cursor: Ha
         lastCursor: Cursor?,
         items: [Element]
     ) -> Paginated<Element> {
-        if let lastCursor {
-            Paginated(
-                items: items,
-                loadMore: { @MainActor [weak self] in
-                    guard let self else {
-                        throw Error.invalidInstance
-                    }
-                    return try await makeRemoteLoadMoreLoader(
-                        query: query,
-                        lastCursor: lastCursor
-                    )
-                }
-            )
-        } else {
-            Paginated(items: items)
+        CursorPaginatorPage.makePage(
+            query: query,
+            lastCursor: lastCursor,
+            items: items
+        ) { @MainActor [weak self] query, cursor in
+            guard let self else { throw CursorPaginatorPage.Error.paginatorDeallocated }
+            return try await self.loadMorePage(query: query, lastCursor: cursor)
         }
     }
 }

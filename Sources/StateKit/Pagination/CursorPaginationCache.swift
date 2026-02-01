@@ -3,9 +3,7 @@
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
 actor CursorPaginationCache<Element, Key: Hashable & Sendable, Cursor: Hashable & Sendable> where Element: Identifiable & Sendable, Element.ID: Sendable {
-    private var cache: [Element] = []
-    private var key: Key?
-    private var lastCursor: Cursor?
+    private let storage = CursorCacheStorage<Element, Key, Cursor>()
 
     @discardableResult
     func updateCache(
@@ -13,41 +11,17 @@ actor CursorPaginationCache<Element, Key: Hashable & Sendable, Cursor: Hashable 
         lastCursor: Cursor?,
         elements: [Element]
     ) -> [Element] {
-        if self.key != key {
-            self.key = key
-            cache = elements
-        } else {
-            cache += elements
-        }
-        self.lastCursor = lastCursor
-        return cache
+        storage.updateCache(key: key, lastCursor: lastCursor, elements: elements)
     }
 
     @discardableResult
     func updateCache(
         differenceBuilder: (_ cache: [Element]) -> Difference<Element>
     ) -> (key: Key, lastCursor: Cursor?, elements: [Element])? {
-        guard let key else { return nil }
-
-        let difference = differenceBuilder(cache)
-        for deletion in difference.deletions {
-            cache.removeAll { $0.id == deletion }
-        }
-
-        for update in difference.updates {
-            if let index = cache.firstIndex(where: { $0.id == update.id }) {
-                cache[index] = update
-            }
-        }
-
-        for insertion in difference.insertions {
-            cache.append(insertion)
-        }
-
-        return (key, lastCursor, cache)
+        storage.updateCache(differenceBuilder: differenceBuilder)
     }
 
     func cachedElement(with id: Element.ID) -> Element? {
-        cache.first(where: { $0.id == id })
+        storage.cachedElement(with: id)
     }
 }

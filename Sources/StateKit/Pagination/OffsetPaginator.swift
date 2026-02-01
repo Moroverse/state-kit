@@ -43,7 +43,7 @@ public actor OffsetPaginator<Element, Query: Hashable & Sendable> where Element:
         let (elements, hasNextPage) = try await remoteLoader(query, 0)
         let offset = elements.count
         await cache.updateCache(key: query, offset: offset, hasMore: hasNextPage, elements: elements)
-        return makePage(query: query, elements: elements, offset: offset, hasNextPage: hasNextPage)
+        return makePage(query: query, elements: elements, hasNextPage: hasNextPage)
     }
 
     /// Updates the cached elements based on local changes.
@@ -64,7 +64,6 @@ public actor OffsetPaginator<Element, Query: Hashable & Sendable> where Element:
         return makePage(
             query: params.key,
             elements: params.elements,
-            offset: params.offset,
             hasNextPage: params.hasMore
         )
     }
@@ -78,13 +77,12 @@ public actor OffsetPaginator<Element, Query: Hashable & Sendable> where Element:
         let newOffset = offset + newElements.count
 
         let latestCache = await cache.updateCache(key: query, offset: newOffset, hasMore: hasNextPage, elements: newElements)
-        return makePage(query: query, elements: latestCache, offset: newOffset, hasNextPage: hasNextPage)
+        return makePage(query: query, elements: latestCache, hasNextPage: hasNextPage)
     }
 
     private func makePage(
         query: Query,
         elements: [Element],
-        offset: Int,
         hasNextPage: Bool
     ) -> Paginated<Element> {
         if hasNextPage {
@@ -94,7 +92,8 @@ public actor OffsetPaginator<Element, Query: Hashable & Sendable> where Element:
                     guard let self else {
                         throw Error.invalidInstance
                     }
-                    return try await loadMore(query: query, offset: offset)
+                    let currentOffset = await cache.currentOffset
+                    return try await loadMore(query: query, offset: currentOffset)
                 }
             )
         } else {

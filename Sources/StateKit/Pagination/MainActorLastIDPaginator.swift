@@ -54,4 +54,4 @@
 
  - Note: For full API documentation, see `MainActorCursorPaginator`.
  */
-public typealias MainActorLastIDPaginator<Element, Query> = MainActorCursorPaginator<Element, Query, Element.ID> where Element: Identifiable, Query: Hashable
+public typealias MainActorLastIDPaginator<Element, Query> = MainActorCursorPaginator<Element, Query, Element.ID> where Element: Identifiable & Sendable, Query: Hashable & Sendable

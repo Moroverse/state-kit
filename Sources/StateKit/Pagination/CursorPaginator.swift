@@ -66,10 +66,6 @@ public actor CursorPaginator<Element, Query: Hashable & Sendable, Cursor: Hashab
     /// - Throws: Any error that might occur during the remote loading process
     public typealias RemoteLoader = @Sendable (Query, Cursor?) async throws -> (elements: [Element], lastCursor: Cursor?)
 
-    enum Error: Swift.Error {
-        case invalidInstance
-    }
-
     private let cache: CursorPaginationCache<Element, Query, Cursor>
     private let remoteLoader: RemoteLoader
     private let asyncSubject: AsyncSubject<Paginated<Element>>
@@ -151,13 +147,13 @@ public actor CursorPaginator<Element, Query: Hashable & Sendable, Cursor: Hashab
         await asyncSubject.stream()
     }
 
-    private func makeRemoteLoadMoreLoader(
+    private func loadMorePage(
         query: Query,
         lastCursor: Cursor
     ) async throws -> Paginated<Element> {
-        let (elements, lastID) = try await remoteLoader(query, lastCursor)
-        let latestCache = await cache.updateCache(key: query, lastCursor: lastID, elements: elements)
-        return makePage(query: query, lastCursor: lastID, items: latestCache)
+        let (elements, newCursor) = try await remoteLoader(query, lastCursor)
+        let latestCache = await cache.updateCache(key: query, lastCursor: newCursor, elements: elements)
+        return makePage(query: query, lastCursor: newCursor, items: latestCache)
     }
 
     private func makePage(
@@ -165,21 +161,13 @@ public actor CursorPaginator<Element, Query: Hashable & Sendable, Cursor: Hashab
         lastCursor: Cursor?,
         items: [Element]
     ) -> Paginated<Element> {
-        if let lastCursor {
-            Paginated(
-                items: items,
-                loadMore: { [weak self] in
-                    guard let self else {
-                        throw Error.invalidInstance
-                    }
-                    return try await makeRemoteLoadMoreLoader(
-                        query: query,
-                        lastCursor: lastCursor
-                    )
-                }
-            )
-        } else {
-            Paginated(items: items)
+        CursorPaginatorPage.makePage(
+            query: query,
+            lastCursor: lastCursor,
+            items: items
+        ) { [weak self] query, cursor in
+            guard let self else { throw CursorPaginatorPage.Error.paginatorDeallocated }
+            return try await self.loadMorePage(query: query, lastCursor: cursor)
         }
     }
 }
