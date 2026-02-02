@@ -6,7 +6,7 @@ import StateKit
 import SwiftUI
 
 struct FullFeaturedListScreen: View {
-    typealias FullStore = SelectableListStore<PaginatedListStore<SearchableListStore<Paginated<Article>, ArticleQuery, any Error>, Article>>
+    typealias FullStore = ComposedListStore<Article, ArticleQuery, any Error>.Full
 
     @State private var service: MockArticleService
     @State private var store: FullStore

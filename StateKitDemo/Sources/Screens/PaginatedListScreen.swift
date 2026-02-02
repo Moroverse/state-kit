@@ -7,7 +7,7 @@ import SwiftUI
 
 struct PaginatedListScreen: View {
     @State private var service = MockArticleService()
-    @State private var store: SelectableListStore<PaginatedListStore<ListStore<Paginated<Article>, ArticleQuery, any Error>, Article>>
+    @State private var store: ComposedListStore<Article, ArticleQuery, any Error>.PaginatedSelectable
 
     init(service: MockArticleService = MockArticleService()) {
         self.service = service
