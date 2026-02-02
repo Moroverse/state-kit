@@ -6,7 +6,7 @@ Core utilities and abstractions for managing application state and data flow in 
 
 ### State Management
 
-- **`ListStore`** — Full-featured store for managing asynchronous loading, debounced search, pagination, and selection for a collection of items. Conforms to `ListStateProviding`, `PaginatedListProviding`, `SearchableListProviding`, and `SelectableListProviding`.
+- **`ListStore`** — Core `@Observable` store for async collection loading. Manages state machine, caching, and cancellation. Wrappable with decorator stores for search, pagination, and selection.
 - **`DetailStore`** — Store for managing the loading state of a single item.
 - **`ListLoadingState`** — State enum for list loading: `idle`, `inProgress`, `loaded`, `empty`, `error`. Includes `LoadMoreState` for pagination.
 - **`LoadingState`** — State enum for single-item loading: `idle`, `inProgress`, `loaded`, `empty`, `error`.
@@ -31,17 +31,51 @@ Core utilities and abstractions for managing application state and data flow in 
 - **`Debounce`** — Actor-based debounce using variadic generics.
 - **`AsyncSubject`** / **`MainActorSubject`** — Broadcast values to multiple `AsyncStream` subscribers.
 
+### Decorator Stores
+
+- **`SearchableListStore`** — Adds debounced text search via `SearchEngine`.
+- **`PaginatedListStore`** — Adds load-more pagination via `PaginationEngine`.
+- **`SelectableListStore`** — Adds item selection tracking.
+
 ## Usage
+
+### Basic List
 
 ```swift
 let store = ListStore<[MyItem], MyQuery, MyError>(
     loader: { query in try await api.fetchItems(query) },
-    queryBuilder: { searchTerm in MyQuery(term: searchTerm) }
+    queryFactory: { MyQuery() }
 )
 
 await store.load()
+```
+
+### Composable Decorator Chain
+
+```swift
+let store = ListStore<Paginated<MyItem>, MyQuery, MyError>(
+    loader: { query in try await api.fetchPaginatedItems(query) },
+    queryFactory: { MyQuery() }
+)
+.searchable(queryBuilder: { term in MyQuery(term: term) })
+.paginated()
+.selectable()
+
+await store.load()
 await store.search("keyword")
+try await store.loadMore()
 store.select(someItemID)
+```
+
+### Single Item
+
+```swift
+let detailStore = DetailStore<MyItem, UUID, MyError>(
+    loader: { id in try await api.fetchItem(id) },
+    queryProvider: { itemID }
+)
+
+await detailStore.load()
 ```
 
 ## Documentation
