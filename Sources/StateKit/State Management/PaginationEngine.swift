@@ -6,8 +6,7 @@ import Foundation
 
 /// Internal engine that encapsulates pagination (load-more) logic.
 ///
-/// Used by `ListStore` to manage the `loadMore()` lifecycle. `BasicListStore`
-/// does not use this engine — it has no pagination support.
+/// Used by `ListStore` to manage the `loadMore()` lifecycle.
 @MainActor
 final class PaginationEngine<Model: RandomAccessCollection & Sendable, Failure: Error>
     where Model.Element: Identifiable & Sendable {

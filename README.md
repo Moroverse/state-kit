@@ -7,7 +7,6 @@ Core utilities and abstractions for managing application state and data flow in 
 ### State Management
 
 - **`ListStore`** — Full-featured store for managing asynchronous loading, debounced search, pagination, and selection for a collection of items. Conforms to `ListStateProviding`, `PaginatedListProviding`, `SearchableListProviding`, and `SelectableListProviding`.
-- **`BasicListStore`** — Simpler list store without search, pagination, or selection. Conforms to `ListStateProviding`.
 - **`DetailStore`** — Store for managing the loading state of a single item.
 - **`ListLoadingState`** — State enum for list loading: `idle`, `inProgress`, `loaded`, `empty`, `error`. Includes `LoadMoreState` for pagination.
 - **`LoadingState`** — State enum for single-item loading: `idle`, `inProgress`, `loaded`, `empty`, `error`.

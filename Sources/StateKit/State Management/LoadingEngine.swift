@@ -6,8 +6,7 @@ import Foundation
 
 /// Internal engine that encapsulates core loading, caching, and task management logic.
 ///
-/// `LoadingEngine` is shared by both `BasicListStore` and `ListStore` to avoid
-/// duplicating the load/cache/cancel lifecycle. All observable state remains on the
+/// `LoadingEngine` manages the load/cache/cancel lifecycle. All observable state remains on the
 /// `@Observable` store classes — this engine only manages the non-observable internals
 /// and computes state transitions.
 @MainActor

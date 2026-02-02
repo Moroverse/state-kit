@@ -8,7 +8,6 @@ import Foundation
 /// Internal engine that encapsulates search coordination with debounce.
 ///
 /// Manages the `latestQueryString`, `queryBuilder`, and `Debounce` actor.
-/// Used by `ListStore` only — `BasicListStore` has no search capability.
 @MainActor
 final class SearchEngine<Model: RandomAccessCollection & Sendable, Query: Sendable & Equatable, Failure: Error>
     where Model.Element: Identifiable & Sendable {

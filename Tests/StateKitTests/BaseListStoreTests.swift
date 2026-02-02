@@ -1,4 +1,4 @@
-// BasicListStoreTests.swift
+// BaseListStoreTests.swift
 // Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2026-02-01 05:29 GMT.
 
@@ -9,7 +9,7 @@ import TestKit
 
 @MainActor
 @Suite
-struct BasicListStoreTests {
+struct BaseListStoreTests {
     // MARK: - SUT Creation
 
     private func makeSUT() async -> (
