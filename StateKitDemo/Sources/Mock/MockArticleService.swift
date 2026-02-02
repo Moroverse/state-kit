@@ -1,6 +1,6 @@
 // MockArticleService.swift
 // Copyright (c) 2026 Moroverse
-// Created by Daniel Moro on 2026-02-01 12:20 GMT.
+// Created by Daniel Moro on 2026-02-01 12:28 GMT.
 
 import Foundation
 import StateKit
@@ -25,15 +25,17 @@ final class MockArticleService {
         )
     }
 
-    func loadPaginatedArticles(query: ArticleQuery) async throws -> Paginated<Article> {
+    func loadPaginatedArticles(query: ArticleQuery, base: [Article]? = nil) async throws -> Paginated<Article> {
         try await Task.sleep(for: delay)
         if shouldFail { throw MockError.networkFailure }
 
-        let articles = generateArticles(
+        let newArticles = generateArticles(
             matching: query.term,
             page: query.page,
             count: pageSize
         )
+
+        let articles = if let base { base + newArticles } else { newArticles }
 
         let hasMore = (query.page + 1) * pageSize < totalArticles
         let nextPage = query.page + 1
@@ -42,7 +44,8 @@ final class MockArticleService {
             let loadMore: Paginated<Article>.LoadMoreCompletion = { [weak self] in
                 guard let self else { throw MockError.networkFailure }
                 return try await loadPaginatedArticles(
-                    query: ArticleQuery(term: query.term, page: nextPage)
+                    query: ArticleQuery(term: query.term, page: nextPage),
+                    base: articles
                 )
             }
             return Paginated(items: articles, loadMore: loadMore)

@@ -7,7 +7,7 @@ import SwiftUI
 
 struct PaginatedListScreen: View {
     @State private var service = MockArticleService()
-    @State private var store: PaginatedListStore<ListStore<Paginated<Article>, ArticleQuery, any Error>>
+    @State private var store: SelectableListStore<PaginatedListStore<ListStore<Paginated<Article>, ArticleQuery, any Error>>>
 
     init(service: MockArticleService = MockArticleService()) {
         self.service = service
@@ -16,7 +16,17 @@ struct PaginatedListScreen: View {
                 try await service.loadPaginatedArticles(query: query)
             },
             queryFactory: { .default }
-        ).paginated()
+        )
+        .paginated()
+        .selectable()
+    }
+
+    private var selectionBinding: Binding<String?> {
+        Binding {
+            store.selection
+        } set: { newSelection in
+            store.select(newSelection)
+        }
     }
 
     var body: some View {
@@ -79,9 +89,10 @@ struct PaginatedListScreen: View {
         _ articles: Paginated<Article>,
         _ loadMoreState: LoadMoreState
     ) -> some View {
-        List {
+        List(selection: selectionBinding) {
             ForEach(articles) { article in
                 ArticleRow(article: article)
+                    .tag(article.id)
             }
             loadMoreFooter(state: loadMoreState)
         }
