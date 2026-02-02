@@ -7,27 +7,22 @@ import Foundation
 /// Internal engine that encapsulates pagination (load-more) logic.
 ///
 /// Used by ``PaginatedListStore`` to manage the `loadMore()` lifecycle.
+///
+/// `PaginationEngine` is constrained to `Paginated<Element>` models, ensuring at compile time
+/// that pagination features are only available when the underlying model supports them.
 @MainActor
-final class PaginationEngine<Model: RandomAccessCollection & Sendable, Failure: Error>
-    where Model.Element: Identifiable & Sendable {
-    enum PaginationError: LocalizedError {
-        case invalidModel
-    }
+final class PaginationEngine<Element: Identifiable & Sendable, Failure: Error> {
+    typealias Model = Paginated<Element>
 
-    private let emptyStateConfiguration: EmptyStateConfiguration
     private(set) var loadMoreTask: Task<Model, Error>?
 
-    init(emptyStateConfiguration: EmptyStateConfiguration) {
-        self.emptyStateConfiguration = emptyStateConfiguration
-    }
+    init() {}
 
     /// Determines the load-more state for the given model.
     ///
-    /// Returns `.ready` if the model is a `Paginated` type with a `loadMore` closure,
-    /// otherwise returns `.unavailable`.
+    /// Returns `.ready` if the model has a `loadMore` closure, otherwise returns `.unavailable`.
     func loadMoreState(for model: Model) -> LoadMoreState {
-        if let paginated = model as? Paginated<Model.Element>,
-           paginated.loadMore != nil {
+        if model.loadMore != nil {
             .ready
         } else {
             .unavailable
@@ -39,7 +34,7 @@ final class PaginationEngine<Model: RandomAccessCollection & Sendable, Failure: 
     /// - Parameters:
     ///   - currentState: The current loading state (read from the store).
     ///   - setState: A closure the engine calls to update the store's observable state.
-    ///   - invalidateCache: A closure that can reset the loading engine's cache (currently unused).
+    ///   - invalidateCache: A closure that can reset the loading engine's cache.
     func loadMore(
         currentState: ListLoadingState<Model, Failure>,
         setState: (ListLoadingState<Model, Failure>) -> Void,
@@ -49,14 +44,9 @@ final class PaginationEngine<Model: RandomAccessCollection & Sendable, Failure: 
         case let .loaded(model, loadMoreState):
             switch loadMoreState {
             case .ready:
-                if let paginated = model as? Paginated<Model.Element>,
-                   let paginatedLoadMore = paginated.loadMore {
+                if let paginatedLoadMore = model.loadMore {
                     let action: @Sendable () async throws -> Model = {
-                        let result = try await paginatedLoadMore()
-                        guard let typedResult = result as? Model else {
-                            throw PaginationError.invalidModel
-                        }
-                        return typedResult
+                        try await paginatedLoadMore()
                     }
                     try await perform(
                         action: action,

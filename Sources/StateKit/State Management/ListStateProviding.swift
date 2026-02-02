@@ -62,7 +62,7 @@ public protocol PaginatedListProviding: ListStateProviding {
 @MainActor
 public protocol SearchableListProviding: ListStateProviding {
     func search(_ query: String) async
-    func cancelSearch() async
+    func cancelSearch()
 }
 
 /// Protocol for list providers that support item selection.

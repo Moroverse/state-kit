@@ -9,7 +9,7 @@ StateKit provides a composable set of stores and protocols for loading, searchin
 The library follows a **composable decorator pattern**: start with a base ``ListStore`` and wrap it with decorators to add features incrementally.
 
 ```swift
-let store = ListStore(loader: api.fetch, queryFactory: { .default })
+let store = ListStore(loader: api.fetch, queryProvider: { .default })
     .searchable(queryBuilder: { term in Query(term: term) })
     .paginated()
     .selectable()

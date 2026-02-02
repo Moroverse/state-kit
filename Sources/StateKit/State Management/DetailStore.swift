@@ -30,10 +30,9 @@ public indirect enum LoadingState<Model, Failure: Error> {
 
     /// The state when a load completed but no data was found.
     ///
-    /// - Parameters:
-    ///   - label: A localized string resource describing the empty state (e.g., "No results")
-    ///   - image: An image source to display alongside the empty state message
-    case empty(label: LocalizedStringResource, image: ImageSource)
+    /// The view layer should read ``EmptyStateConfiguration`` from the store
+    /// to obtain presentational details (label, image) when encountering this state.
+    case empty
 
     /// The loading state when an asynchronous operation is in progress.
     ///
@@ -57,6 +56,16 @@ public indirect enum LoadingState<Model, Failure: Error> {
 
 extension LoadingState: Equatable where Model: Equatable, Failure: Equatable {}
 
+extension LoadingState {
+    /// Handles a thrown error by ignoring cancellation and transitioning to error state for typed failures.
+    mutating func handleLoadingError(_ error: Error) {
+        guard !(error is CancellationError) else { return }
+        if let failure = error as? Failure {
+            self = .error(failure, previousState: self)
+        }
+    }
+}
+
 /**
  A store for managing asynchronous loading and state management of a single model based on a query.
 
@@ -76,17 +85,17 @@ extension LoadingState: Equatable where Model: Equatable, Failure: Equatable {}
  */
 @MainActor
 @Observable
-public class DetailStore<Model: Sendable, Query: Sendable & Equatable, Failure: Error> {
+public final class DetailStore<Model: Sendable, Query: Sendable & Equatable, Failure: Error> {
     public var state: LoadingState<Model, Failure>
 
-    private let emptyStateConfiguration: EmptyStateConfiguration
-    private let loader: DataLoader<Query, Model>
+    @ObservationIgnored
+    public let emptyStateConfiguration: EmptyStateConfiguration
+
+    @ObservationIgnored
+    private let loadingEngine: DetailLoadingEngine<Model, Query, Failure>
+
     @ObservationIgnored
     private var queryProvider: QueryProvider<Query>
-    @ObservationIgnored
-    private var cachedQuery: Query?
-    @ObservationIgnored
-    private var currentTask: Task<Model, Error>?
 
     /**
      Initializes a new instance of `DetailStore`.
@@ -103,73 +112,23 @@ public class DetailStore<Model: Sendable, Query: Sendable & Equatable, Failure: 
     ) {
         self.emptyStateConfiguration = emptyStateConfiguration
         state = .idle
-        self.loader = loader
         self.queryProvider = queryProvider
+        loadingEngine = DetailLoadingEngine(loader: loader)
     }
 
     /**
      Loads a single model asynchronously based on the provided query.
      */
     public func load() async {
-        let oldState = state
-
         do {
-            _ = try await loadModel(oldState: oldState)
-        } catch is CancellationError {
-            state = oldState
+            let query = try queryProvider()
+            _ = try await loadingEngine.loadModel(
+                query: query,
+                currentState: state,
+                setState: { self.state = $0 }
+            )
         } catch {
-            if let failure = error as? Failure {
-                state = .error(failure, previousState: oldState)
-            }
-        }
-    }
-
-    func loadModel(oldState: LoadingState<Model, Failure>) async throws -> Model {
-        let query = try queryProvider()
-        if let cachedQuery, cachedQuery == query {
-            switch state {
-            case let .loaded(model):
-                return model
-
-            case .inProgress:
-                if let currentTask {
-                    return try await currentTask.value
-                }
-
-            default:
-                break
-            }
-        }
-
-        let task = Task { [loader] in
-            try Task.checkCancellation()
-            let model = try await loader(query)
-            try Task.checkCancellation()
-            return model
-        }
-
-        currentTask = task
-        cachedQuery = query
-        let cancellable = Cancellable { task.cancel() }
-        state = .inProgress(cancellable, previousState: oldState)
-
-        do {
-            let model = try await task.value
-            currentTask = nil
-            if Task.isCancelled {
-                throw CancellationError()
-            }
-            state = .loaded(model)
-            return model
-        } catch let error as CancellationError {
-            currentTask = nil
-            state = oldState
-            throw error
-        } catch {
-            currentTask = nil
-            state = oldState
-            cachedQuery = nil
-            throw error
+            state.handleLoadingError(error)
         }
     }
 
@@ -178,58 +137,5 @@ public class DetailStore<Model: Sendable, Query: Sendable & Equatable, Failure: 
         if case let .inProgress(cancellable, _) = state {
             cancellable.cancel()
         }
-    }
-}
-
-/// An actor that manages loading and caching of models based on queries.
-actor DataLoaderActor<Query: Hashable & Sendable, Model: Sendable> {
-    private let loader: DataLoader<Query, Model>
-
-    private enum State {
-        case inProgress(Task<Model, Error>)
-        case ready(Model)
-    }
-
-    private var cache: [Query: State] = [:]
-
-    init(loader: @escaping DataLoader<Query, Model>) {
-        self.loader = loader
-    }
-
-    /// Loads a model for the given query, using caching when possible.
-    ///
-    /// - Parameter query: The query to load the model for.
-    /// - Returns: The loaded model.
-    /// - Throws: An error if the loading fails.
-    func load(query: Query) async throws -> Model {
-        if let cached = cache[query] {
-            switch cached {
-            case let .ready(model):
-                return model
-
-            case let .inProgress(task):
-                return try await task.value
-            }
-        }
-
-        let task = Task {
-            try await loader(query)
-        }
-
-        cache[query] = .inProgress(task)
-
-        do {
-            let model = try await task.value
-            cache[query] = .ready(model)
-            return model
-        } catch {
-            cache[query] = nil
-            throw error
-        }
-    }
-
-    /// Invalidates the entire cache, removing all stored models.
-    func invalidate() {
-        cache = [:]
     }
 }

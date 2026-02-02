@@ -254,7 +254,7 @@ struct LastIDPaginatorTests {
             }
 
         // Get cached element
-        let cachedElement = await sut.cachedElement(with: "2")
+        let cachedElement = await sut.cachedElement(for: "2")
 
         #expect(cachedElement?.id == "2")
         #expect(cachedElement?.name == "Item 2")
@@ -276,18 +276,13 @@ struct LastIDPaginatorTests {
             }
 
         // Get non-existent cached element
-        let cachedElement = await sut.cachedElement(with: "999")
+        let cachedElement = await sut.cachedElement(for: "999")
 
         #expect(cachedElement == nil)
     }
 }
 
 // MARK: - Test Helpers
-
-private struct TestItem: Identifiable, Equatable, Sendable {
-    let id: String
-    let name: String
-}
 
 private struct TestQuery: Hashable, Sendable {
     let value: String

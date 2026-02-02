@@ -73,7 +73,7 @@ actor OffsetPaginationCache<Element: Identifiable & Sendable, Key: Hashable & Se
         offset
     }
 
-    func cachedElement(with id: Element.ID) -> Element? {
+    func cachedElement(for id: Element.ID) -> Element? {
         guard let index = idIndex[id] else { return nil }
         return cache[index]
     }

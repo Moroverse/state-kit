@@ -15,7 +15,7 @@ struct PaginatedListScreen: View {
             loader: { query in
                 try await service.loadPaginatedArticles(query: query)
             },
-            queryFactory: { .default }
+            queryProvider: { .default }
         )
         .paginated()
         .selectable()
@@ -66,9 +66,12 @@ struct PaginatedListScreen: View {
         case let .loaded(articles, loadMoreState):
             paginatedList(articles, loadMoreState)
 
-        case let .empty(label, image):
+        case .empty:
             ContentUnavailableView {
-                Label(String(localized: label), systemImage: image.systemName)
+                Label(
+                    String(localized: store.base.base.emptyStateConfiguration.label),
+                    systemImage: store.base.base.emptyStateConfiguration.image.systemName
+                )
             }
 
         case let .error(error, previousState: _):

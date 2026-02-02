@@ -31,7 +31,7 @@ The core design separates concerns into layered decorators. Each decorator adds 
 The fluent API makes composition readable:
 
 ```swift
-ListStore(loader: fetch, queryFactory: { .default })
+ListStore(loader: fetch, queryProvider: { .default })
     .searchable(queryBuilder: { term in Query(term: term) })
     .paginated()
     .selectable()
@@ -175,11 +175,11 @@ StateKit embraces Swift 6 strict concurrency:
 A typical load cycle:
 
 1. View calls `store.load()`.
-2. `ListStore` asks the `queryFactory` for a query.
+2. `ListStore` asks the `queryProvider` for a query.
 3. `LoadingEngine` checks the cache — if the query matches and data is loaded, it returns immediately.
 4. Otherwise, `LoadingEngine` creates a `Task`, sets state to `.inProgress(cancellable, previousState:)`.
 5. The loader closure fetches data asynchronously.
-6. On success: state becomes `.loaded(model, loadMoreState:)` or `.empty(label:image:)`.
+6. On success: state becomes `.loaded(model, loadMoreState:)` or `.empty`.
 7. On failure: state becomes `.error(failure, previousState:)`.
 8. On cancellation: state reverts to the previous state.
 

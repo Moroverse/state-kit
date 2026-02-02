@@ -153,13 +153,6 @@ struct DetailStoreTests {
 
 // MARK: - Test Helpers
 
-private extension AsyncSpy {
-    @Sendable
-    func load(_ query: some Sendable) async throws -> Result {
-        try await perform(query)
-    }
-}
-
 private struct TestModel: Equatable, Sendable {
     let id: String
     let name: String

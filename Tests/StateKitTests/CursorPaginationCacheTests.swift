@@ -161,7 +161,7 @@ struct CursorPaginationCacheTests {
         ]
 
         _ = await sut.updateCache(key: key, lastCursor: items.last?.id, elements: items)
-        let result = await sut.cachedElement(with: "2")
+        let result = await sut.cachedElement(for: "2")
 
         #expect(result?.id == "2")
         #expect(result?.name == "Item 2")
@@ -174,18 +174,13 @@ struct CursorPaginationCacheTests {
         let items = [TestItem(id: "1", name: "Item 1")]
 
         _ = await sut.updateCache(key: key, lastCursor: items.last?.id, elements: items)
-        let result = await sut.cachedElement(with: "non-existent")
+        let result = await sut.cachedElement(for: "non-existent")
 
         #expect(result == nil)
     }
 }
 
 // MARK: - Test Helpers
-
-private struct TestItem: Identifiable, Equatable, Sendable {
-    let id: String
-    let name: String
-}
 
 private struct TestKey: Hashable, Sendable {
     let value: String

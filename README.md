@@ -44,7 +44,7 @@ Core utilities and abstractions for managing application state and data flow in 
 ```swift
 let store = ListStore<[MyItem], MyQuery, MyError>(
     loader: { query in try await api.fetchItems(query) },
-    queryFactory: { MyQuery() }
+    queryProvider: { MyQuery() }
 )
 
 await store.load()
@@ -55,7 +55,7 @@ await store.load()
 ```swift
 let store = ListStore<Paginated<MyItem>, MyQuery, MyError>(
     loader: { query in try await api.fetchPaginatedItems(query) },
-    queryFactory: { MyQuery() }
+    queryProvider: { MyQuery() }
 )
 .searchable(queryBuilder: { term in MyQuery(term: term) })
 .paginated()

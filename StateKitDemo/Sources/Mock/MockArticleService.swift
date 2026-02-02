@@ -41,7 +41,7 @@ final class MockArticleService {
         let nextPage = query.page + 1
 
         if hasMore {
-            let loadMore: Paginated<Article>.LoadMoreCompletion = { [weak self] in
+            let loadMore: Paginated<Article>.LoadMoreAction = { [weak self] in
                 guard let self else { throw MockError.networkFailure }
                 return try await loadPaginatedArticles(
                     query: ArticleQuery(term: query.term, page: nextPage),

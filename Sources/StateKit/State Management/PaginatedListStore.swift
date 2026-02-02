@@ -13,7 +13,7 @@ import Observation
 /// ### Usage:
 ///
 /// ```swift
-/// let store = ListStore(loader: api.fetch, queryFactory: { .default })
+/// let store = ListStore(loader: api.fetch, queryProvider: { .default })
 ///     .searchable(queryBuilder: { term in Query(term: term) })
 ///     .paginated()
 /// ```
@@ -21,13 +21,13 @@ import Observation
 /// - Note: This class is `@MainActor` and should be used from the main thread.
 @MainActor
 @Observable
-public final class PaginatedListStore<Base: ListStateProviding>
-    where Base.Model.Element: Identifiable & Sendable {
+public final class PaginatedListStore<Base: ListStateProviding, Element: Identifiable & Sendable>
+    where Base.Model == Paginated<Element> {
     /// The underlying store being wrapped.
     public let base: Base
 
     @ObservationIgnored
-    private let paginationEngine: PaginationEngine<Base.Model, Base.Failure>
+    private let paginationEngine: PaginationEngine<Element, Base.Failure>
 
     @ObservationIgnored
     private let setState: (ListLoadingState<Base.Model, Base.Failure>) -> Void
@@ -37,7 +37,7 @@ public final class PaginatedListStore<Base: ListStateProviding>
 
     init(
         base: Base,
-        paginationEngine: PaginationEngine<Base.Model, Base.Failure>,
+        paginationEngine: PaginationEngine<Element, Base.Failure>,
         setState: @escaping (ListLoadingState<Base.Model, Base.Failure>) -> Void,
         invalidateCache: @escaping () -> Void
     ) {
@@ -84,17 +84,17 @@ extension PaginatedListStore: SearchableListProviding where Base: SearchableList
         await base.search(query)
     }
 
-    public func cancelSearch() async {
-        await base.cancelSearch()
+    public func cancelSearch() {
+        base.cancelSearch()
     }
 }
 
 extension PaginatedListStore: SelectableListProviding where Base: SelectableListProviding {
-    public var selection: Base.Model.Element.ID? {
+    public var selection: Element.ID? {
         base.selection
     }
 
-    public func select(_ id: Base.Model.Element.ID?) {
+    public func select(_ id: Element.ID?) {
         base.select(id)
     }
 }

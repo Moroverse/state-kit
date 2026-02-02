@@ -13,7 +13,7 @@ import Observation
 /// ### Usage:
 ///
 /// ```swift
-/// let store = ListStore(loader: api.fetch, queryFactory: { .default })
+/// let store = ListStore(loader: api.fetch, queryProvider: { .default })
 ///     .searchable(queryBuilder: { term in Query(term: term) })
 ///     .paginated()
 ///     .selectable()
@@ -34,7 +34,7 @@ public final class SelectableListStore<Base: ListStateProviding>
     /// - Parameters:
     ///   - base: The base store to wrap.
     ///   - selection: An optional initial selection ID. Default is `nil`.
-    public init(
+    init(
         base: Base,
         selection: Base.Model.Element.ID? = nil
     ) {
@@ -79,8 +79,8 @@ extension SelectableListStore: SearchableListProviding where Base: SearchableLis
         await base.search(query)
     }
 
-    public func cancelSearch() async {
-        await base.cancelSearch()
+    public func cancelSearch() {
+        base.cancelSearch()
     }
 }
 

@@ -21,7 +21,7 @@ actor CursorPaginationCache<Element: Identifiable & Sendable, Key: Hashable & Se
         storage.updateCache(differenceBuilder: differenceBuilder)
     }
 
-    func cachedElement(with id: Element.ID) -> Element? {
-        storage.cachedElement(with: id)
+    func cachedElement(for id: Element.ID) -> Element? {
+        storage.cachedElement(for: id)
     }
 }

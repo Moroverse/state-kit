@@ -49,11 +49,13 @@ extension SelectableListStore: ListStoreComposable where Base: ListStoreComposab
 public extension ListStoreComposable {
     /// Wraps this store with pagination support.
     ///
+    /// Only available when `Model` is `Paginated<Element>`, ensuring pagination is type-safe
+    /// rather than relying on runtime type-casting.
+    ///
     /// - Returns: A ``PaginatedListStore`` wrapping this store.
-    func paginated() -> PaginatedListStore<Self> {
-        let engine = PaginationEngine<Model, Failure>(
-            emptyStateConfiguration: coreStore.emptyStateConfiguration
-        )
+    func paginated<Element: Identifiable & Sendable>() -> PaginatedListStore<Self, Element>
+        where Model == Paginated<Element> {
+        let engine = PaginationEngine<Element, Failure>()
         coreStore.loadingEngine.loadMoreStateResolver = engine.loadMoreState
         return PaginatedListStore(
             base: self,
@@ -62,7 +64,9 @@ public extension ListStoreComposable {
             invalidateCache: { self.coreStore.loadingEngine.invalidateCache() }
         )
     }
+}
 
+public extension ListStoreComposable {
     /// Wraps this store with selection support.
     ///
     /// - Parameters:

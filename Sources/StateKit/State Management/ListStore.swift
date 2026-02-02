@@ -73,10 +73,9 @@ public indirect enum ListLoadingState<Model: RandomAccessCollection, Failure: Er
 
     /// The state when a load operation completed successfully but returned no results.
     ///
-    /// - Parameters:
-    ///   - label: A localized string resource describing the empty state (e.g., "No items found")
-    ///   - image: An image source to display alongside the empty state message
-    case empty(label: LocalizedStringResource, image: ImageSource)
+    /// The view layer should read ``EmptyStateConfiguration`` from the store
+    /// to obtain presentational details (label, image) when encountering this state.
+    case empty
 
     /// The loading state when an asynchronous list loading operation is in progress.
     ///
@@ -101,6 +100,18 @@ public indirect enum ListLoadingState<Model: RandomAccessCollection, Failure: Er
 }
 
 extension ListLoadingState: Equatable where Model: Equatable, Failure: Equatable {}
+
+extension ListLoadingState {
+    /// Handles a thrown error by ignoring cancellation and transitioning to error state for typed failures.
+    mutating func handleLoadingError(_ error: Error) {
+        guard !(error is CancellationError) else { return }
+        if let failure = error as? Failure {
+            self = .error(failure, previousState: self)
+        } else {
+            assertionFailure("Unhandled error type: \(error)")
+        }
+    }
+}
 
 public extension ListLoadingState where Model.Element: Identifiable {
     /// Retrieves the element at the specified index from the loaded model, if available.
@@ -141,15 +152,15 @@ extension LoadMoreState: Equatable {}
 
  ```swift
  // Simple list:
- let store = ListStore(loader: api.fetch, queryFactory: { .default })
+ let store = ListStore(loader: api.fetch, queryProvider: { .default })
 
  // Searchable + paginated:
- let store = ListStore(loader: api.fetch, queryFactory: { .default })
+ let store = ListStore(loader: api.fetch, queryProvider: { .default })
      .searchable(queryBuilder: { term in Query(term: term) })
      .paginated()
 
  // Full-featured:
- let store = ListStore(loader: api.fetch, queryFactory: { .default })
+ let store = ListStore(loader: api.fetch, queryProvider: { .default })
      .searchable(queryBuilder: { term in Query(term: term) })
      .paginated()
      .selectable()
@@ -165,7 +176,7 @@ extension LoadMoreState: Equatable {}
  */
 @MainActor
 @Observable
-public final class ListStore<Model: RandomAccessCollection & Sendable, Query: Sendable & Sendable & Equatable, Failure: Error>
+public final class ListStore<Model: RandomAccessCollection & Sendable, Query: Sendable & Equatable, Failure: Error>
     where Model.Element: Identifiable, Model.Element: Sendable {
     public var state: ListLoadingState<Model, Failure>
 
@@ -177,12 +188,12 @@ public final class ListStore<Model: RandomAccessCollection & Sendable, Query: Se
     // MARK: - Query Factory
 
     @ObservationIgnored
-    private let queryFactory: QueryProvider<Query>
+    private let queryProvider: QueryProvider<Query>
 
     // MARK: - Configuration
 
     @ObservationIgnored
-    let emptyStateConfiguration: EmptyStateConfiguration
+    public let emptyStateConfiguration: EmptyStateConfiguration
 
     /**
      Initializes a `ListStore` for loading a collection.
@@ -190,19 +201,18 @@ public final class ListStore<Model: RandomAccessCollection & Sendable, Query: Se
      - Parameters:
        - emptyStateConfiguration: Configuration for empty state labels and images. Default is `.default`.
        - loader: A closure responsible for loading models asynchronously based on a query.
-       - queryFactory: A closure responsible for constructing the query.
+       - queryProvider: A closure responsible for constructing the query.
      */
     public init(
         emptyStateConfiguration: EmptyStateConfiguration = .default,
         loader: @escaping DataLoader<Query, Model>,
-        queryFactory: @escaping QueryProvider<Query>
+        queryProvider: @escaping QueryProvider<Query>
     ) {
         self.emptyStateConfiguration = emptyStateConfiguration
         state = .idle
-        self.queryFactory = queryFactory
+        self.queryProvider = queryProvider
         loadingEngine = LoadingEngine(
             loader: loader,
-            emptyStateConfiguration: emptyStateConfiguration,
             loadMoreStateResolver: { _ in .unavailable }
         )
     }
@@ -216,20 +226,15 @@ public final class ListStore<Model: RandomAccessCollection & Sendable, Query: Se
      */
     public func load(forceReload: Bool = false) async {
         do {
-            let query = try queryFactory()
+            let query = try queryProvider()
             try await loadingEngine.loadModel(
                 query: query,
                 forceReload: forceReload,
                 currentState: state,
                 setState: { self.state = $0 }
             )
-        } catch is CancellationError {
         } catch {
-            if let failure = error as? Failure {
-                state = .error(failure, previousState: state)
-            } else {
-                assertionFailure("Unhandled error type in ListStore.load(): \(error)")
-            }
+            state.handleLoadingError(error)
         }
     }
 

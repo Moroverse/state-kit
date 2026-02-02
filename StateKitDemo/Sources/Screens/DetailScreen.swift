@@ -82,9 +82,12 @@ struct DetailScreen: View {
             case let .loaded(article):
                 articleDetail(article)
 
-            case let .empty(label, image):
+            case .empty:
                 ContentUnavailableView {
-                    Label(String(localized: label), systemImage: image.systemName)
+                    Label(
+                        String(localized: store.emptyStateConfiguration.label),
+                        systemImage: store.emptyStateConfiguration.image.systemName
+                    )
                 }
 
             case let .error(error, previousState: _):

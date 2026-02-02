@@ -19,7 +19,7 @@ struct FullFeaturedListScreen: View {
             loader: { query in
                 try await service.loadPaginatedArticles(query: query)
             },
-            queryFactory: { ArticleQuery(term: "", page: 0) }
+            queryProvider: { ArticleQuery(term: "", page: 0) }
         )
         .searchable(queryBuilder: { term in ArticleQuery(term: term, page: 0) })
         .paginated()
@@ -86,9 +86,12 @@ struct FullFeaturedListScreen: View {
         case let .loaded(articles, loadMoreState):
             articleList(articles, loadMoreState)
 
-        case let .empty(label, image):
+        case .empty:
             ContentUnavailableView {
-                Label(String(localized: label), systemImage: image.systemName)
+                Label(
+                    String(localized: store.base.base.base.emptyStateConfiguration.label),
+                    systemImage: store.base.base.base.emptyStateConfiguration.image.systemName
+                )
             }
 
         case let .error(error, previousState: _):

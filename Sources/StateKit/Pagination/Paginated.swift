@@ -19,10 +19,10 @@ public struct Paginated<Item> {
     /// A closure that asynchronously loads more items and returns a new instance of `Paginated`
     /// with the additional items.
     ///
-    /// The `LoadMoreCompletion` typealias defines a closure that asynchronously returns
+    /// The `LoadMoreAction` typealias defines a closure that asynchronously returns
     /// a new instance of `Paginated`
     /// with additional items.
-    public typealias LoadMoreCompletion = @Sendable () async throws -> Self
+    public typealias LoadMoreAction = @Sendable () async throws -> Self
 
     /// The items currently contained in the `Paginated` structure.
     ///
@@ -33,7 +33,7 @@ public struct Paginated<Item> {
     /// a new instance of `Paginated`.
     ///
     /// This property is optional and can be `nil` if there are no more items to load.
-    public let loadMore: LoadMoreCompletion?
+    public let loadMore: LoadMoreAction?
 
     /// Initializes a new instance of `Paginated` with the given items and an optional
     /// `loadMore` closure.
@@ -41,7 +41,7 @@ public struct Paginated<Item> {
     /// - Parameters:
     ///   - items: The items to be contained in the new instance of `Paginated`.
     ///   - loadMore: An optional closure to load more items asynchronously. Defaults to `nil`.
-    public init(items: [Item], loadMore: LoadMoreCompletion? = nil) {
+    public init(items: [Item], loadMore: LoadMoreAction? = nil) {
         self.items = items
         self.loadMore = loadMore
     }

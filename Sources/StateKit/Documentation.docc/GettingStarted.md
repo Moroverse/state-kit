@@ -48,14 +48,14 @@ enum ItemError: Error {
 
 ### Create a Basic List Store
 
-``ListStore`` is the core type for loading collections. Provide a `loader` closure that fetches data and a `queryFactory` that constructs the default query:
+``ListStore`` is the core type for loading collections. Provide a `loader` closure that fetches data and a `queryProvider` that constructs the default query:
 
 ```swift
 let store = ListStore<[Item], ItemQuery, ItemError>(
     loader: { query in
         try await api.fetchItems(query: query)
     },
-    queryFactory: { ItemQuery() }
+    queryProvider: { ItemQuery() }
 )
 ```
 
@@ -78,7 +78,7 @@ Use the ``ListLoadingState`` enum to drive your UI:
 struct ItemListView: View {
     @State var store = ListStore<[Item], ItemQuery, ItemError>(
         loader: { query in try await api.fetchItems(query: query) },
-        queryFactory: { ItemQuery() }
+        queryProvider: { ItemQuery() }
     )
 
     var body: some View {
@@ -99,8 +99,11 @@ struct ItemListView: View {
             case .loaded(let items, _):
                 List(items) { item in Text(item.title) }
 
-            case .empty(let label, _):
-                ContentUnavailableView(label, systemImage: "magnifyingglass")
+            case .empty:
+                ContentUnavailableView(
+                    store.emptyStateConfiguration.label,
+                    systemImage: "magnifyingglass"
+                )
 
             case .error(let error, _):
                 Text("Error: \(error.localizedDescription)")
@@ -118,7 +121,7 @@ Wrap the store with ``ListStore/searchable(queryBuilder:loadingConfiguration:)``
 ```swift
 let searchableStore = ListStore<[Item], ItemQuery, ItemError>(
     loader: { query in try await api.fetchItems(query: query) },
-    queryFactory: { ItemQuery() }
+    queryProvider: { ItemQuery() }
 )
 .searchable(queryBuilder: { term in
     ItemQuery(searchTerm: term)
@@ -159,7 +162,7 @@ let paginatedStore = ListStore<Paginated<Item>, ItemQuery, ItemError>(
     loader: { query in
         try await api.fetchPaginatedItems(query: query)
     },
-    queryFactory: { ItemQuery() }
+    queryProvider: { ItemQuery() }
 )
 .searchable(queryBuilder: { term in ItemQuery(searchTerm: term) })
 .paginated()
@@ -181,7 +184,7 @@ Chain `.selectable()` to track which item is selected:
 ```swift
 let fullStore = ListStore<Paginated<Item>, ItemQuery, ItemError>(
     loader: { query in try await api.fetchPaginatedItems(query: query) },
-    queryFactory: { ItemQuery() }
+    queryProvider: { ItemQuery() }
 )
 .searchable(queryBuilder: { term in ItemQuery(searchTerm: term) })
 .paginated()

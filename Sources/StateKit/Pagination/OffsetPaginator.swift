@@ -86,6 +86,7 @@ public actor OffsetPaginator<Element: Identifiable & Sendable, Query: Hashable &
     /// - Returns: A `Paginated` object containing the updated elements
     ///
     /// - Throws: Any error that might occur during the update process
+    @discardableResult
     public func update(
         differenceBuilder: @Sendable (_ cache: [Element]) -> Difference<Element>
     ) async throws -> Paginated<Element> {
@@ -102,8 +103,8 @@ public actor OffsetPaginator<Element: Identifiable & Sendable, Query: Hashable &
     ///
     /// - Parameter id: The identifier of the element to retrieve.
     /// - Returns: The element if found in cache, otherwise `nil`.
-    public func cachedElement(with id: Element.ID) async -> Element? {
-        await cache.cachedElement(with: id)
+    public func cachedElement(for id: Element.ID) async -> Element? {
+        await cache.cachedElement(for: id)
     }
 
     private func loadMore(query: Query, offset: Int) async throws -> Paginated<Element> {

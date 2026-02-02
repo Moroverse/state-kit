@@ -15,21 +15,21 @@ struct BaseListStoreTests {
     private func makeSUT() async -> (
         sut: ListStore<[TestItem], TestQuery, any Error>,
         loader: AsyncSpy<[TestItem]>,
-        queryFactory: QueryFactoryStub
+        queryProvider: QueryProviderStub
     ) {
         let loader = AsyncSpy<[TestItem]>()
-        let queryFactory = QueryFactoryStub()
+        let queryProvider = QueryProviderStub()
 
         let sut: ListStore<[TestItem], TestQuery, any Error> = ListStore(
             loader: loader.load,
-            queryFactory: queryFactory.make
+            queryProvider: queryProvider.make
         )
 
         await Test.trackForMemoryLeaks(sut)
         await Test.trackForMemoryLeaks(loader)
-        await Test.trackForMemoryLeaks(queryFactory)
+        await Test.trackForMemoryLeaks(queryProvider)
 
-        return (sut, loader, queryFactory)
+        return (sut, loader, queryProvider)
     }
 
     // MARK: - Init
@@ -51,8 +51,8 @@ struct BaseListStoreTests {
             TestItem(id: "1", name: "Item 1"),
             TestItem(id: "2", name: "Item 2")
         ]
-        let (sut, loader, queryFactory) = await makeSUT()
-        queryFactory.queries = [TestQuery(term: "test")]
+        let (sut, loader, queryProvider) = await makeSUT()
+        queryProvider.queries = [TestQuery(term: "test")]
 
         try await loader.async(yieldCount: 2) {
             await sut.load()
@@ -70,8 +70,8 @@ struct BaseListStoreTests {
 
     @Test(.teardownTracking())
     func load_setsEmptyStateForEmptyResponse() async throws {
-        let (sut, loader, queryFactory) = await makeSUT()
-        queryFactory.queries = [TestQuery(term: "test")]
+        let (sut, loader, queryProvider) = await makeSUT()
+        queryProvider.queries = [TestQuery(term: "test")]
 
         try await loader.async(yieldCount: 2) {
             await sut.load()
@@ -88,8 +88,8 @@ struct BaseListStoreTests {
     @Test(.teardownTracking())
     func load_setsErrorStateOnErrorResponse() async throws {
         let expectedError = NSError(domain: "TestError", code: 42, userInfo: nil)
-        let (sut, loader, queryFactory) = await makeSUT()
-        queryFactory.queries = [TestQuery(term: "test")]
+        let (sut, loader, queryProvider) = await makeSUT()
+        queryProvider.queries = [TestQuery(term: "test")]
 
         try await loader.async(yieldCount: 2) {
             await sut.load()
@@ -113,8 +113,8 @@ struct BaseListStoreTests {
     @Test(.teardownTracking())
     func load_usesCacheOnRepeatedCallWithSameQuery() async throws {
         let expectedItems = [TestItem(id: "1", name: "Item 1")]
-        let (sut, loader, queryFactory) = await makeSUT()
-        queryFactory.queries = [TestQuery(term: "test"), TestQuery(term: "test")]
+        let (sut, loader, queryProvider) = await makeSUT()
+        queryProvider.queries = [TestQuery(term: "test"), TestQuery(term: "test")]
 
         // First load
         try await loader.async(yieldCount: 2) {
@@ -147,8 +147,8 @@ struct BaseListStoreTests {
     @Test(.teardownTracking())
     func cancel_maintainsIdleStateOnCancelledLoad() async throws {
         let anyItems = [TestItem(id: "1", name: "Item 1")]
-        let (sut, loader, queryFactory) = await makeSUT()
-        queryFactory.queries = [TestQuery(term: "test")]
+        let (sut, loader, queryProvider) = await makeSUT()
+        queryProvider.queries = [TestQuery(term: "test")]
 
         try await loader.async(yieldCount: 2) {
             await sut.load()
@@ -172,8 +172,8 @@ struct BaseListStoreTests {
             TestItem(id: "2", name: "Item 2"),
             TestItem(id: "3", name: "Item 3")
         ]
-        let (sut, loader, queryFactory) = await makeSUT()
-        queryFactory.queries = [TestQuery(term: "test")]
+        let (sut, loader, queryProvider) = await makeSUT()
+        queryProvider.queries = [TestQuery(term: "test")]
 
         try await loader.async(yieldCount: 2) {
             await sut.load()
@@ -200,8 +200,8 @@ struct BaseListStoreTests {
     @Test(.teardownTracking())
     func load_alwaysSetsLoadMoreStateToUnavailable() async throws {
         let items = [TestItem(id: "1", name: "Item 1")]
-        let (sut, loader, queryFactory) = await makeSUT()
-        queryFactory.queries = [TestQuery(term: "test")]
+        let (sut, loader, queryProvider) = await makeSUT()
+        queryProvider.queries = [TestQuery(term: "test")]
 
         try await loader.async(yieldCount: 2) {
             await sut.load()
@@ -219,31 +219,19 @@ struct BaseListStoreTests {
 
 // MARK: - Test Helpers
 
-private extension AsyncSpy {
-    @Sendable
-    func load(_ query: some Sendable) async throws -> Result {
-        try await perform(query)
-    }
-}
-
-private struct TestItem: Identifiable, Equatable, Sendable {
-    let id: String
-    let name: String
-}
-
 private struct TestQuery: Equatable, Sendable {
     let term: String
 }
 
 @MainActor
-private final class QueryFactoryStub {
+private final class QueryProviderStub {
     var queries: [TestQuery] = []
     var makeCallCount = 0
 
     func make() -> TestQuery {
         makeCallCount += 1
         guard !queries.isEmpty else {
-            Issue.record("Query factory not properly stubbed")
+            Issue.record("Query provider not properly stubbed")
             return TestQuery(term: "")
         }
 

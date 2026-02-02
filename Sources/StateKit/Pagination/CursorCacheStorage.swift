@@ -63,7 +63,7 @@ final class CursorCacheStorage<Element: Identifiable, Key: Hashable, Cursor: Has
         return (key, lastCursor, cache)
     }
 
-    func cachedElement(with id: Element.ID) -> Element? {
+    func cachedElement(for id: Element.ID) -> Element? {
         guard let index = idIndex[id] else { return nil }
         return cache[index]
     }

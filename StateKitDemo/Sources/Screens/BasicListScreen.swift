@@ -14,7 +14,7 @@ struct BasicListScreen: View {
             loader: { query in
                 try await service.loadArticles(query: query)
             },
-            queryFactory: { .default }
+            queryProvider: { .default }
         )
         self.service = service
     }
@@ -34,7 +34,7 @@ struct BasicListScreen: View {
                     loader: { query in
                         try await service.loadArticles(query: query)
                     },
-                    queryFactory: { .default }
+                    queryProvider: { .default }
                 )
                 store = newStore
                 await newStore.load()
@@ -65,9 +65,12 @@ struct BasicListScreen: View {
         case let .loaded(articles, _):
             articleList(articles, store: store)
 
-        case let .empty(label, image):
+        case .empty:
             ContentUnavailableView {
-                Label(String(localized: label), systemImage: image.systemName)
+                Label(
+                    String(localized: store.emptyStateConfiguration.label),
+                    systemImage: store.emptyStateConfiguration.image.systemName
+                )
             }
 
         case let .error(error, previousState: _):

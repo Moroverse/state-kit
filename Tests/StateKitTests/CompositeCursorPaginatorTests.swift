@@ -210,7 +210,7 @@ struct CompositeCursorPaginatorTests {
             }
 
         // Get cached element
-        let cachedElement = await sut.cachedElement(with: "2")
+        let cachedElement = await sut.cachedElement(for: "2")
 
         #expect(cachedElement?.id == "2")
         #expect(cachedElement?.title == "Post 2")

@@ -142,8 +142,8 @@ public final class MainActorCursorPaginator<Element: Identifiable & Sendable, Qu
     /// - Parameter id: The identifier of the element to retrieve
     ///
     /// - Returns: The element if found in cache, otherwise nil
-    public func cachedElement(with id: Element.ID) -> Element? {
-        cache.cachedElement(with: id)
+    public func cachedElement(for id: Element.ID) -> Element? {
+        cache.cachedElement(for: id)
     }
 
     /// Subscribe to pagination updates.

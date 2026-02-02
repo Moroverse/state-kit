@@ -1,50 +1,43 @@
-// LoadingEngine.swift
+// DetailLoadingEngine.swift
 // Copyright (c) 2026 Moroverse
-// Created by Daniel Moro on 2026-02-01 05:29 GMT.
+// Created by Daniel Moro on 2026-02-02 06:39 GMT.
 
 import Foundation
 
-/// Internal engine that encapsulates core loading, caching, and task management logic.
+/// Internal engine that encapsulates core loading, caching, and task management logic for detail stores.
 ///
-/// `LoadingEngine` manages the load/cache/cancel lifecycle. All observable state remains on the
-/// `@Observable` store classes — this engine only manages the non-observable internals
-/// and computes state transitions.
+/// `DetailLoadingEngine` manages the load/cache/cancel lifecycle for single-model loading.
+/// All observable state remains on the `@Observable` store classes — this engine only manages
+/// the non-observable internals and computes state transitions.
+///
+/// This is the single-model counterpart of ``LoadingEngine``, which handles collection loading.
 @MainActor
-final class LoadingEngine<Model: RandomAccessCollection & Sendable, Query: Sendable & Equatable, Failure: Error>
-    where Model.Element: Identifiable & Sendable {
+final class DetailLoadingEngine<Model: Sendable, Query: Sendable & Equatable, Failure: Error> {
     private let loader: DataLoader<Query, Model>
-    var loadMoreStateResolver: (Model) -> LoadMoreState
 
     private(set) var cachedQuery: Query?
     private(set) var currentTask: Task<Model, Error>?
 
-    init(
-        loader: @escaping DataLoader<Query, Model>,
-        loadMoreStateResolver: @escaping (Model) -> LoadMoreState
-    ) {
+    init(loader: @escaping DataLoader<Query, Model>) {
         self.loader = loader
-        self.loadMoreStateResolver = loadMoreStateResolver
     }
 
     /// Attempts to load a model for the given query, managing caching and task lifecycle.
     ///
     /// - Parameters:
     ///   - query: The query to load.
-    ///   - forceReload: Whether to bypass the cache.
     ///   - currentState: The current loading state (read from the store).
     ///   - setState: A closure the engine calls to update the store's observable state.
     /// - Returns: The loaded model.
     /// - Throws: `CancellationError` if the task was cancelled, or the loader's error.
-    @discardableResult
     func loadModel(
         query: Query,
-        forceReload: Bool,
-        currentState: ListLoadingState<Model, Failure>,
-        setState: (ListLoadingState<Model, Failure>) -> Void
+        currentState: LoadingState<Model, Failure>,
+        setState: (LoadingState<Model, Failure>) -> Void
     ) async throws -> Model {
-        if !forceReload, let cachedQuery, cachedQuery == query {
+        if let cachedQuery, cachedQuery == query {
             switch currentState {
-            case let .loaded(model, _):
+            case let .loaded(model):
                 return model
 
             case .inProgress:
@@ -77,11 +70,7 @@ final class LoadingEngine<Model: RandomAccessCollection & Sendable, Query: Senda
             if Task.isCancelled {
                 throw CancellationError()
             }
-            if model.isEmpty {
-                setState(.empty)
-            } else {
-                setState(.loaded(model, loadMoreState: loadMoreStateResolver(model)))
-            }
+            setState(.loaded(model))
             return model
         } catch let error as CancellationError {
             currentTask = nil

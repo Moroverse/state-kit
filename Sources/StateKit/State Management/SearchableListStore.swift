@@ -15,14 +15,14 @@ import Observation
 /// ### Usage:
 ///
 /// ```swift
-/// let store = ListStore(loader: api.fetch, queryFactory: { .default })
+/// let store = ListStore(loader: api.fetch, queryProvider: { .default })
 ///     .searchable(queryBuilder: { term in Query(term: term) })
 /// ```
 ///
 /// - Note: This class is `@MainActor` and should be used from the main thread.
 @MainActor
 @Observable
-public final class SearchableListStore<Model: RandomAccessCollection & Sendable, Query: Sendable & Sendable & Equatable, Failure: Error>
+public final class SearchableListStore<Model: RandomAccessCollection & Sendable, Query: Sendable & Equatable, Failure: Error>
     where Model.Element: Identifiable, Model.Element: Sendable {
     /// The underlying list store that performs actual loading.
     public let base: ListStore<Model, Query, Failure>
@@ -62,13 +62,8 @@ public final class SearchableListStore<Model: RandomAccessCollection & Sendable,
         do {
             let query = try searchEngine.buildQuery()
             _ = try await searchEngine.debouncedLoad(query: query, forceReload: forceReload)
-        } catch is CancellationError {
         } catch {
-            if let failure = error as? Failure {
-                base.state = .error(failure, previousState: base.state)
-            } else {
-                assertionFailure("Unhandled error type in SearchableListStore.load(): \(error)")
-            }
+            base.state.handleLoadingError(error)
         }
     }
 
@@ -84,18 +79,13 @@ public final class SearchableListStore<Model: RandomAccessCollection & Sendable,
         do {
             let query = try searchEngine.buildQuery()
             _ = try await searchEngine.debouncedLoad(query: query, forceReload: false)
-        } catch is CancellationError {
         } catch {
-            if let failure = error as? Failure {
-                base.state = .error(failure, previousState: base.state)
-            } else {
-                assertionFailure("Unhandled error type in SearchableListStore.search(): \(error)")
-            }
+            base.state.handleLoadingError(error)
         }
     }
 
     /// Cancels any ongoing search or load operations.
-    public func cancelSearch() async {
+    public func cancelSearch() {
         if case let .inProgress(cancellable, _) = base.state {
             cancellable.cancel()
         }

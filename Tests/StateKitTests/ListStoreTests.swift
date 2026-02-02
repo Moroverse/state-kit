@@ -15,7 +15,7 @@ struct ListStoreTests {
     // MARK: - SUT Creation
 
     private func makeSUTPaginated() async -> (
-        sut: PaginatedListStore<SearchableListStore<Paginated<TestListItem>, TestQuery, any Error>>,
+        sut: PaginatedListStore<SearchableListStore<Paginated<TestListItem>, TestQuery, any Error>, TestListItem>,
         loader: AsyncSpy<Paginated<TestListItem>>,
         queryBuilder: QueryBuilderStub
     ) {
@@ -29,7 +29,7 @@ struct ListStoreTests {
                 image: .system("magnifyingglass")
             ),
             loader: loader.load,
-            queryFactory: { queryBuilder.build("") }
+            queryProvider: { queryBuilder.build("") }
         )
 
         let sut = listStore
@@ -66,7 +66,7 @@ struct ListStoreTests {
                 image: .system("magnifyingglass")
             ),
             loader: loader.load,
-            queryFactory: { queryBuilder.build("") }
+            queryProvider: { queryBuilder.build("") }
         )
 
         let sut = listStore.searchable(
@@ -100,7 +100,7 @@ struct ListStoreTests {
                 image: .system("magnifyingglass")
             ),
             loader: loader.load,
-            queryFactory: { queryBuilder.build("") }
+            queryProvider: { queryBuilder.build("") }
         )
 
         let sut = listStore
@@ -164,12 +164,10 @@ struct ListStoreTests {
             } completeWith: {
                 .success([])
             } expectationAfterCompletion: { _ in
-                guard case let .empty(label, image) = sut.state else {
+                guard case .empty = sut.state else {
                     Issue.record("Expected .empty state, got \(sut.state)")
                     return
                 }
-                #expect(label.key == "No results")
-                #expect(image == .system("magnifyingglass"))
             }
     }
 
@@ -251,7 +249,7 @@ struct ListStoreTests {
             .async(yieldCount: 2) {
                 await sut.load()
             } processAdvance: {
-                await sut.cancelSearch()
+                sut.cancelSearch()
             } completeWith: {
                 .success(expectedItems)
             } expectationAfterCompletion: { _ in
@@ -477,7 +475,7 @@ struct ListStoreTests {
                 image: .system("magnifyingglass")
             ),
             loader: loader.load,
-            queryFactory: { queryBuilder.build("") }
+            queryProvider: { queryBuilder.build("") }
         )
 
         let sut = listStore
@@ -516,13 +514,6 @@ struct ListStoreTests {
 }
 
 // MARK: - Test Helpers
-
-private extension AsyncSpy {
-    @Sendable
-    func load(_ query: some Sendable) async throws -> Result {
-        try await perform(query)
-    }
-}
 
 private struct TestListItem: Identifiable, Equatable, Sendable {
     let id: String
