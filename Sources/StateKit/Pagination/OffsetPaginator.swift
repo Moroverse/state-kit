@@ -2,6 +2,30 @@
 // Copyright (c) 2026 Moroverse
 // Created by Daniel Moro on 2025-04-06 16:31 GMT.
 
+/// An actor that handles pagination using an offset-based strategy for any collection of identifiable elements.
+///
+/// `OffsetPaginator` manages paginated data using a numeric offset:
+/// 1. Initial loading: Fetches the first page of data for a given query (offset 0)
+/// 2. Pagination: Loads subsequent pages by incrementing the offset
+/// 3. Caching: Maintains loaded elements in memory to avoid redundant network requests
+/// 4. Updates: Supports local modifications to the cache via ``Difference``
+///
+/// ### Usage Example:
+/// ```swift
+/// class RemoteItemRepository {
+///     private lazy var paginator = OffsetPaginator<Item, Query>(remoteLoader: loadItems)
+///
+///     private func loadItems(query: Query, offset: Int) async throws
+///         -> (elements: [Item], hasNextPage: Bool) {
+///         let response = try await api.getItems(query: query, offset: offset, limit: 20)
+///         return (response.items, response.hasMore)
+///     }
+///
+///     func load(query: Query) async throws -> Paginated<Item> {
+///         try await paginator.load(query: query)
+///     }
+/// }
+/// ```
 public actor OffsetPaginator<Element: Identifiable & Sendable, Query: Hashable & Sendable> where Element.ID: Sendable {
     /// A function type that loads elements from a remote source using offset-based pagination.
     ///
@@ -30,10 +54,9 @@ public actor OffsetPaginator<Element: Identifiable & Sendable, Query: Hashable &
     private let remoteLoader: RemoteLoader
     private let cache: OffsetPaginationCache<Element, Query>
 
-    /// Initializes a new paginator with a remote loader function and page size.
+    /// Initializes a new paginator with a remote loader function.
     ///
-    /// - Parameters:
-    ///   - remoteLoader: A function that loads elements from a remote source.
+    /// - Parameter remoteLoader: A function that loads elements from a remote source.
     public init(remoteLoader: @escaping RemoteLoader) {
         self.remoteLoader = remoteLoader
         cache = .init()
@@ -75,6 +98,10 @@ public actor OffsetPaginator<Element: Identifiable & Sendable, Query: Hashable &
         )
     }
 
+    /// Returns a cached element with the specified ID, if it exists.
+    ///
+    /// - Parameter id: The identifier of the element to retrieve.
+    /// - Returns: The element if found in cache, otherwise `nil`.
     public func cachedElement(with id: Element.ID) async -> Element? {
         await cache.cachedElement(with: id)
     }

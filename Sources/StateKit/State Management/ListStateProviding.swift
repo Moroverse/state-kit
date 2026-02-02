@@ -49,7 +49,7 @@ public extension ListStateProviding {
 ///
 /// Extends ``ListStateProviding`` directly — pagination is orthogonal to search and selection.
 /// Combine with other protocols as needed: `PaginatedListProviding & SearchableListProviding`.
-/// ``ListStore`` conforms to this protocol. When initialized without pagination, `loadMore()` is a no-op.
+/// ``PaginatedListStore`` conforms to this protocol via the `.paginated()` decorator.
 @MainActor
 public protocol PaginatedListProviding: ListStateProviding {
     func loadMore() async throws

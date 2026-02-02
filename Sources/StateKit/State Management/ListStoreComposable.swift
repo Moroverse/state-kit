@@ -4,11 +4,12 @@
 
 import Foundation
 
-/// Internal protocol providing access to the root ``ListStore`` for wrappers
+/// Protocol providing access to the root ``ListStore`` for decorator stores
 /// that need state mutation (pagination) or loading engine wiring.
 ///
-/// All store types conform: ``ListStore/coreStore`` returns `self`,
-/// wrappers return their base's `coreStore`.
+/// You don't conform to this protocol directly — it powers the fluent API
+/// (`.paginated()`, `.selectable()`) on all store types.
+/// ``ListStore/coreStore`` returns `self`; wrappers return their base's `coreStore`.
 @MainActor
 public protocol ListStoreComposable: ListStateProviding {
     associatedtype Query: Sendable & Equatable

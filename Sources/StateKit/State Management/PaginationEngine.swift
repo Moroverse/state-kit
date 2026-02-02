@@ -6,7 +6,7 @@ import Foundation
 
 /// Internal engine that encapsulates pagination (load-more) logic.
 ///
-/// Used by `ListStore` to manage the `loadMore()` lifecycle.
+/// Used by ``PaginatedListStore`` to manage the `loadMore()` lifecycle.
 @MainActor
 final class PaginationEngine<Model: RandomAccessCollection & Sendable, Failure: Error>
     where Model.Element: Identifiable & Sendable {
@@ -39,7 +39,7 @@ final class PaginationEngine<Model: RandomAccessCollection & Sendable, Failure: 
     /// - Parameters:
     ///   - currentState: The current loading state (read from the store).
     ///   - setState: A closure the engine calls to update the store's observable state.
-    ///   - invalidateCache: A closure called when an error occurs, to reset the loading engine's cache.
+    ///   - invalidateCache: A closure that can reset the loading engine's cache (currently unused).
     func loadMore(
         currentState: ListLoadingState<Model, Failure>,
         setState: (ListLoadingState<Model, Failure>) -> Void,

@@ -48,6 +48,7 @@ public struct Paginated<Item> {
 }
 
 public extension Paginated {
+    /// Whether more items are available to load (`loadMore` is non-nil).
     var hasMore: Bool {
         loadMore != nil
     }
@@ -78,6 +79,13 @@ extension Paginated: Collection {
 extension Paginated: RandomAccessCollection {}
 
 public extension Paginated {
+    /// Transforms each item using the given closure, preserving pagination.
+    ///
+    /// If `loadMore` exists, the returned `Paginated` wraps it so subsequent pages
+    /// are also transformed.
+    ///
+    /// - Parameter transform: A closure that converts each `Item` to type `T`.
+    /// - Returns: A new `Paginated<T>` with transformed items and a wrapped `loadMore`.
     func map<T>(_ transform: @escaping @Sendable (Item) throws -> T) rethrows -> Paginated<T> {
         if let loadMore {
             try Paginated<T>(items: items.map(transform)) {

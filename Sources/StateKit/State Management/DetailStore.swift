@@ -173,6 +173,7 @@ public class DetailStore<Model: Sendable, Query: Sendable & Equatable, Failure: 
         }
     }
 
+    /// Cancels any in-progress loading operation.
     public func cancel() {
         if case let .inProgress(cancellable, _) = state {
             cancellable.cancel()
