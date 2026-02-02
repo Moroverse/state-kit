@@ -6,7 +6,7 @@ import StateKit
 import SwiftUI
 
 struct FullFeaturedListScreen: View {
-    typealias FullStore = SelectableListStore<PaginatedListStore<SearchableListStore<Paginated<Article>, ArticleQuery, any Error>>>
+    typealias FullStore = SelectableListStore<PaginatedListStore<SearchableListStore<Paginated<Article>, ArticleQuery, any Error>, Article>>
 
     @State private var service: MockArticleService
     @State private var store: FullStore
@@ -89,8 +89,8 @@ struct FullFeaturedListScreen: View {
         case .empty:
             ContentUnavailableView {
                 Label(
-                    String(localized: store.base.base.base.emptyStateConfiguration.label),
-                    systemImage: store.base.base.base.emptyStateConfiguration.image.systemName
+                    String(localized: store.emptyStateConfiguration.label),
+                    systemImage: store.emptyStateConfiguration.image.systemName
                 )
             }
 

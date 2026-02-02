@@ -70,3 +70,5 @@ Logic is extracted into reusable engine types to avoid duplication across stores
 # Important
 
 1. Prioritize substance over compliments. Never soften criticism. If an idea has holes, say so directly-"This won't scale because X" is better than "Have you considered...". Challenge assumptions. Point out errors. Useful feedback matters more than comfortable feedback.
+
+2. Do not add Co-Authored-By: Claude **** <noreply@anthropic.com>" in commit messages

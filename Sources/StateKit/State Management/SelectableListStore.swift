@@ -48,6 +48,10 @@ public final class SelectableListStore<Base: ListStateProviding>
         base.state
     }
 
+    public var emptyStateConfiguration: EmptyStateConfiguration {
+        base.emptyStateConfiguration
+    }
+
     public func load(forceReload: Bool = false) async {
         await base.load(forceReload: forceReload)
     }

@@ -36,6 +36,7 @@ public protocol ListStateProviding<Model, Failure>: AnyObject, Observable {
     associatedtype Failure: Error
 
     var state: ListLoadingState<Model, Failure> { get }
+    var emptyStateConfiguration: EmptyStateConfiguration { get }
     func load(forceReload: Bool) async
 }
 

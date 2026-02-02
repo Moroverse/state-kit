@@ -7,7 +7,7 @@ import SwiftUI
 
 struct PaginatedListScreen: View {
     @State private var service = MockArticleService()
-    @State private var store: SelectableListStore<PaginatedListStore<ListStore<Paginated<Article>, ArticleQuery, any Error>>>
+    @State private var store: SelectableListStore<PaginatedListStore<ListStore<Paginated<Article>, ArticleQuery, any Error>, Article>>
 
     init(service: MockArticleService = MockArticleService()) {
         self.service = service
@@ -69,8 +69,8 @@ struct PaginatedListScreen: View {
         case .empty:
             ContentUnavailableView {
                 Label(
-                    String(localized: store.base.base.emptyStateConfiguration.label),
-                    systemImage: store.base.base.emptyStateConfiguration.image.systemName
+                    String(localized: store.emptyStateConfiguration.label),
+                    systemImage: store.emptyStateConfiguration.image.systemName
                 )
             }
 

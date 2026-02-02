@@ -58,6 +58,10 @@ public final class SearchableListStore<Model: RandomAccessCollection & Sendable,
         base.state
     }
 
+    public var emptyStateConfiguration: EmptyStateConfiguration {
+        base.emptyStateConfiguration
+    }
+
     public func load(forceReload: Bool = false) async {
         do {
             let query = try searchEngine.buildQuery()
