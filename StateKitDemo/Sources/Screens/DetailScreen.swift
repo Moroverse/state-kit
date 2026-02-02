@@ -1,6 +1,6 @@
 // DetailScreen.swift
 // Copyright (c) 2026 Moroverse
-// Created by Daniel Moro on 2026-02-01 12:18 GMT.
+// Created by Daniel Moro on 2026-02-01 12:28 GMT.
 
 import StateKit
 import SwiftUI
@@ -24,7 +24,8 @@ struct DetailScreen: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Toggle("Fail", isOn: $service.shouldFail)
-                    .toggleStyle(.switch)
+                    .buttonStyle(.glass)
+                    .toggleStyle(.button)
             }
         }
         .task {
@@ -50,7 +51,7 @@ struct DetailScreen: View {
                     Text("Article \(id)").tag(id)
                 }
             }
-            .pickerStyle(.segmented)
+            .pickerStyle(.menu)
             .padding()
 
             Spacer()
@@ -122,14 +123,5 @@ struct DetailScreen: View {
                 .padding(.horizontal)
         }
         .padding()
-    }
-}
-
-private extension ImageSource {
-    var systemName: String {
-        switch self {
-        case let .system(name): name
-        case .asset: "questionmark"
-        }
     }
 }

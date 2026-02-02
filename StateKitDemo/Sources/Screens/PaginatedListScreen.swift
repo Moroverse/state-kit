@@ -127,27 +127,21 @@ struct PaginatedListScreen: View {
                     .font(.footnote)
                     .frame(maxWidth: .infinity)
             }
+            .accessibilityHint("Loads next page of articles")
         }
     }
 
     private func loadingBanner(cancellable: Cancellable) -> some View {
-        VStack {
+        HStack {
             ProgressView()
             Text("Refreshing...")
                 .font(.footnote)
+            Spacer()
             Button("Cancel") { cancellable.cancel() }
                 .font(.footnote)
         }
         .padding()
         .background(.ultraThinMaterial)
-    }
-}
-
-private extension ImageSource {
-    var systemName: String {
-        switch self {
-        case let .system(name): name
-        case .asset: "questionmark"
-        }
+        .accessibilityElement(children: .combine)
     }
 }

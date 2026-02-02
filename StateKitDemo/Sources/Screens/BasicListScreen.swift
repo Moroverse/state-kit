@@ -107,19 +107,11 @@ struct BasicListScreen: View {
         }
         .padding()
         .background(.ultraThinMaterial)
+        .accessibilityElement(children: .combine)
     }
 }
 
 // MARK: - Helpers
-
-private extension ImageSource {
-    var systemName: String {
-        switch self {
-        case let .system(name): name
-        case .asset: "questionmark"
-        }
-    }
-}
 
 struct ArticleRow: View {
     let article: Article
@@ -137,5 +129,6 @@ struct ArticleRow: View {
                 .lineLimit(2)
         }
         .padding(.vertical, 2)
+        .accessibilityElement(children: .combine)
     }
 }

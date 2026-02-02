@@ -73,6 +73,9 @@ struct FullFeaturedListScreen: View {
         case let .inProgress(cancellable, previousState: previous):
             if case let .loaded(articles, loadMoreState) = previous {
                 articleList(articles, loadMoreState)
+                    .overlay(alignment: .bottom) {
+                        loadingBanner(cancellable: cancellable)
+                    }
             } else {
                 VStack {
                     ProgressView("Loading articles...")
@@ -121,11 +124,8 @@ struct FullFeaturedListScreen: View {
                     }
                 }
                 .tint(.primary)
-                .onAppear {
-                    if article.id == articles.last?.id {
-                        Task { try? await store.loadMore() }
-                    }
-                }
+                .accessibilityAddTraits(store.selection == article.id ? .isSelected : [])
+                .accessibilityHint(store.selection == article.id ? "" : "Double tap to select")
             }
             loadMoreFooter(state: loadMoreState)
         }
@@ -160,19 +160,22 @@ struct FullFeaturedListScreen: View {
                     .font(.footnote)
                     .frame(maxWidth: .infinity)
             }
+            .accessibilityHint("Loads next page of articles")
         }
     }
 
     private func loadingBanner(cancellable: Cancellable) -> some View {
-        VStack {
+        HStack {
             ProgressView()
             Text("Refreshing...")
                 .font(.footnote)
+            Spacer()
             Button("Cancel") { cancellable.cancel() }
                 .font(.footnote)
         }
         .padding()
         .background(.ultraThinMaterial)
+        .accessibilityElement(children: .combine)
     }
 }
 
@@ -200,14 +203,5 @@ private struct ArticleDetailView: View {
         }
         .navigationTitle("Detail")
         .navigationBarTitleDisplayMode(.inline)
-    }
-}
-
-private extension ImageSource {
-    var systemName: String {
-        switch self {
-        case let .system(name): name
-        case .asset: "questionmark"
-        }
     }
 }
